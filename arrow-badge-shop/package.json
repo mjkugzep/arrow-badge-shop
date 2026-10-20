@@ -1,0 +1,6 @@
+{
+  "name": "arrow-district-badge-shop",
+  "version": "1.0.0",
+  "description": "OSM Badge Supplier integration for Arrow District Scouts",
+  "main": "api/order.js"
+}
