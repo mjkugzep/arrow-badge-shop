@@ -100,33 +100,51 @@ module.exports = async (req, res) => {
       termDebug = { error: e.message };
     }
 
-    // 4. Query Badge Stock from OSM
-    const queryParams = new URLSearchParams({
-      action: 'getBadgeStock',
-      section: currentSectionType,
-      section_id: String(currentSectionId),
-      seeIfShared: 'y'
-    });
-    if (termId) {
-      queryParams.append('term_id', String(termId));
-    }
-
-    const osmStockUrl = `https://www.onlinescoutmanager.co.uk/ext/badges/stock/?${queryParams.toString()}`;
-
+    // 4. Query Badges to Buy from OSM
+    let availableBadges = [];
     let stockStatus = null;
     let rawStockResponse = null;
-    let availableBadges = [];
+
+    // Build parameters cleanly (prevents &sect; from becoming §)
+    const stockParams = new URLSearchParams();
+    stockParams.append('action', 'getBadgeStock');
+    stockParams.append('section', currentSectionType);
+    stockParams.append('section_id', String(currentSectionId));
+    if (termId) {
+      stockParams.append('term_id', String(termId));
+    }
+    stockParams.append('seeIfShared', 'y');
+
+    const stockUrl = `https://www.onlinescoutmanager.co.uk/ext/badges/stock/?${stockParams.toString()}`;
 
     try {
-      const stockRes = await fetch(osmStockUrl, {
-        method: 'GET',
+      // First attempt: POST with x-www-form-urlencoded (OSM's preferred API method)
+      let stockRes = await fetch('https://www.onlinescoutmanager.co.uk/ext/badges/stock/', {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
           'User-Agent': 'Arrow-District-Badge-Shop/1.0'
-        }
+        },
+        body: stockParams.toString()
       });
+
+      let resData = await stockRes.json();
+
+      // If POST gave access-error, fallback to GET
+      if (resData && resData.status === false && resData.error && resData.error.code === 'access-error-3') {
+        stockRes = await fetch(stockUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'User-Agent': 'Arrow-District-Badge-Shop/1.0'
+          }
+        });
+        resData = await stockRes.json();
+      }
+
       stockStatus = stockRes.status;
-      rawStockResponse = await stockRes.json();
+      rawStockResponse = resData;
 
       if (rawStockResponse && Array.isArray(rawStockResponse.items)) {
         rawStockResponse.items.forEach(item => {
