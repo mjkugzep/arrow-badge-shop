@@ -50,6 +50,7 @@ function parseOsmPdfText(text) {
   let matchCount = 0;
   let unmatchedBadges = [];
 
+  // 1. Detect Group and Section from header (e.g. "4th Eastleigh: Scouts")
   for (let i = 0; i < Math.min(lines.length, 6); i++) {
     const line = lines[i];
     if (line.includes(":")) {
@@ -75,6 +76,7 @@ function parseOsmPdfText(text) {
     }
   }
 
+  // 2. Parse Badge Rows
   const ignoreWords = [
     'badge', 'required', 'challenge badges', 'activity badges', 
     'staged badges', 'core badges', 'page', 'downloaded', 
@@ -99,12 +101,13 @@ function parseOsmPdfText(text) {
         matchCount++;
         i++;
       } else {
-        unmatchedBadges.push(`${qty}x ${line}`);
+        unmatchedBadges.push(`${qty}x${line}`);
         i++;
       }
     }
   }
 
+  // 3. Put any unlisted badges into notes
   if (unmatchedBadges.length > 0) {
     const extraBox = document.getElementById("extraBadges");
     const existing = extraBox.value.trim();
@@ -115,21 +118,26 @@ function parseOsmPdfText(text) {
   renderBadges();
   renderSummary();
 
-  // Hide the upload box now that it has been used
+  // 4. Hide the upload box now that it has been used
   const dropzone = document.querySelector(".pdf-dropzone");
   if (dropzone) {
     dropzone.style.display = "none";
   }
 
-  // Smoothly scroll down directly to Leader & Collection Information
-  const leaderCard = document.getElementById("leaderDetailsCard");
-  if (leaderCard) {
-    leaderCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  // 5. Alert Dialog Box
+  if (unmatchedBadges.length > 0) {
+    alert(`✅ Loaded ${matchCount} badge(s).\n\n⚠️ ${unmatchedBadges.length} item(s) could not be matched automatically and were added to your notes for the Badge Secretary:\n• ${unmatchedBadges.join("\n• ")}`);
+  } else {
+    alert(`🎉 Perfect match! Loaded all ${matchCount} badge requirement(s) from your OSM Shopping List.`);
   }
 
-  if (unmatchedBadges.length > 0) {
-    alert(`✅ Loaded ${matchCount} badge(s).\n\n⚠️ ${unmatchedBadges.length} item(s) could not be matched automatically and were added to your notes:\n• ${unmatchedBadges.join("\n• ")}`);
-  }
+  // 6. Smoothly scroll down specifically to Section 3: Leader & Collection Information
+  setTimeout(() => {
+    const leaderCard = document.getElementById("leaderDetailsCard");
+    if (leaderCard) {
+      leaderCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, 100);
 }
 
 function setFilter(cat, elem) {
@@ -267,7 +275,7 @@ function validateLeader() {
   return {
     leaderName: name,
     leaderEmail: email,
-    leaderGroup: `${group} - ${section}`,
+    leaderGroup: `${group} -${section}`,
     leaderNotes: document.getElementById("leaderNotes").value.trim() || "No specific date/urgency specified",
     extraBadges: document.getElementById("extraBadges").value.trim()
   };
@@ -280,154 +288,4 @@ async function sendEmailNotification(paymentType, leaderInfo, items, grandTotal)
   }
 
   const bacsDetails = (paymentType.indexOf("BACS") !== -1)
-    ? `\nBACS INSTRUCTIONS FOR GROUP TREASURER:\nAccount Name  : ${DISTRICT_BANK.accountName}\nSort Code     : ${DISTRICT_BANK.sortCode}\nAccount Number: ${DISTRICT_BANK.accountNumber}\nPayment Ref   : #${orderRef}\n`
-    : "";
-
-  const bodyText =
-    `ARROW DISTRICT SCOUT SHOP - BADGE ORDER\n` +
-    `----------------------------------------\n` +
-    `Order Ref     : #${orderRef}\n` +
-    `Date          : ${new Date().toLocaleDateString("en-GB")}\n` +
-    `Status        : ${paymentType}\n\n` +
-    `LEADER & COLLECTION DETAILS (NO DELIVERY):\n` +
-    `Leader Name   : ${leaderInfo.leaderName}\n` +
-    `Group/Section : ${leaderInfo.leaderGroup}\n` +
-    `Leader Email  : ${leaderInfo.leaderEmail}\n` +
-    `Collection / Urgency Note: ${leaderInfo.leaderNotes}\n\n` +
-    `PICKING LIST:\n` +
-    pickingList + `\n` +
-    `----------------------------------------\n` +
-    `Grand Total   : £${grandTotal.toFixed(2)}\n` +
-    `----------------------------------------\n` +
-    bacsDetails + `\n` +
-    (paymentType.indexOf("BACS") !== -1
-      ? "ACTION: Badge Secretary to verify BACS transfer before releasing badges."
-      : "CONFIRMED: Paid online via SumUp card payment.");
-
-  try {
-    await fetch("https://api.web3forms.com/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify({
-        access_key: WEB3FORMS_KEY,
-        subject: `[Badge Order] #${orderRef} - ${leaderInfo.leaderGroup} (${paymentType})`,
-        from_name: "Arrow District Badge Shop",
-        email: leaderInfo.leaderEmail,
-        message: bodyText
-      })
-    });
-  } catch (err) {
-    console.error("Web3Forms error:", err);
-  }
-}
-
-function showThankYouScreen(paymentType, leaderInfo, items, grandTotal) {
-  document.getElementById("mainView").style.display = "none";
-  document.getElementById("thankYouView").style.display = "block";
-  document.getElementById("tyOrderRef").innerText = "#" + orderRef;
-  document.getElementById("tyLeader").innerText = `${leaderInfo.leaderName} (${leaderInfo.leaderGroup})`;
-  document.getElementById("tyEmail").innerText = leaderInfo.leaderEmail;
-  document.getElementById("tyNotes").innerText = leaderInfo.leaderNotes;
-
-  const statusCard = document.getElementById("tyStatusCard");
-  if (paymentType.indexOf("BACS") !== -1) {
-    statusCard.className = "invoice-card bacs";
-    statusCard.innerHTML = `
-      <h3 style="margin-top:0; color:#1e40af;">🏛️ BACS Invoice & Payment Details</h3>
-      <p>Your order has been recorded. Please save or print this page and forward the details below to your <b>Group Treasurer</b> to complete BACS payment:</p>
-      <table style="background:white; max-width:400px; margin-top:10px;">
-        <tr><td><b>Account Name:</b></td><td>${DISTRICT_BANK.accountName}</td></tr>
-        <tr><td><b>Sort Code:</b></td><td>${DISTRICT_BANK.sortCode}</td></tr>
-        <tr><td><b>Account No:</b></td><td>${DISTRICT_BANK.accountNumber}</td></tr>
-        <tr><td><b>Payment Reference:</b></td><td><code>${orderRef}</code></td></tr>
-        <tr><td><b>Total Due:</b></td><td><b>£${grandTotal.toFixed(2)}</b></td></tr>
-      </table>
-    `;
-  } else {
-    statusCard.className = "invoice-card";
-    statusCard.innerHTML = `
-      <h3 style="margin-top:0; color:#166534;">✅ Payment Received via SumUp</h3>
-      <p>Thank you! Your payment of <b>£${grandTotal.toFixed(2)}</b> has been confirmed. The Badge Secretary has received your picking slip and collection notes.</p>
-    `;
-  }
-
-  let tyTable = `<table style="margin-top:10px;"><tr><th>Badge</th><th class="text-right">Qty</th><th class="text-right">Total</th></tr>`;
-  items.forEach(i => {
-    tyTable += `<tr><td>${i.name}</td><td class="text-right">${i.quantity}</td><td class="text-right">£${i.lineTotal}</td></tr>`;
-  });
-  if (leaderInfo.extraBadges) {
-    tyTable += `<tr><td colspan="3"><b>Additional Badges:</b> ${leaderInfo.extraBadges.replace(/\n/g, '<br>')}</td></tr>`;
-  }
-  tyTable += `<tr style="font-weight:bold; background:#fafafa;"><td>Grand Total</td><td class="text-right">${items.reduce((a,b)=>a+b.quantity,0)}</td><td class="text-right">£${grandTotal.toFixed(2)}</td></tr></table>`;
-  document.getElementById("tyItemsTable").innerHTML = tyTable;
-  window.scrollTo(0, 0);
-}
-
-async function startSumUpPayment() {
-  const leader = validateLeader();
-  if (!leader) return;
-
-  const items = getSelectedBadges();
-  const grandTotal = items.reduce((sum, b) => sum + parseFloat(b.lineTotal), 0);
-  const btn = document.getElementById("cardBtn");
-  btn.disabled = true;
-  btn.innerText = "Initializing payment...";
-
-  try {
-    const res = await fetch('/api/order', {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "create_sumup",
-        orderRef: orderRef,
-        amount: grandTotal,
-        description: "Arrow District Badges"
-      })
-    });
-
-    const data = await res.json();
-    if (!res.ok || !data.id) {
-      alert("Payment error: " + (data.error || "Could not start SumUp checkout."));
-      btn.disabled = false;
-      btn.innerText = `💳 Pay £${grandTotal.toFixed(2)} with Card / Apple Pay`;
-      return;
-    }
-
-    document.getElementById("sumup-card-container").style.display = "block";
-    document.getElementById("payment-buttons").style.display = "none";
-
-    SumUpCard.mount({
-      id: "sumup-card",
-      checkoutId: data.id,
-      onResponse: async function (type) {
-        if (type === "success") {
-          await sendEmailNotification("PAID ONLINE (SumUp Card)", leader, items, grandTotal);
-          showThankYouScreen("PAID ONLINE (SumUp Card)", leader, items, grandTotal);
-        } else if (type === "error") {
-          alert("Payment declined or encountered an error.");
-        }
-      }
-    });
-
-  } catch (e) {
-    alert("Error: " + e.message);
-    btn.disabled = false;
-    btn.innerText = `💳 Pay £${grandTotal.toFixed(2)} with Card / Apple Pay`;
-  }
-}
-
-async function requestBACS() {
-  const leader = validateLeader();
-  if (!leader) return;
-
-  const items = getSelectedBadges();
-  const grandTotal = items.reduce((sum, b) => sum + parseFloat(b.lineTotal), 0);
-  const btn = document.getElementById("bacsBtn");
-  btn.disabled = true;
-  btn.innerText = "Generating Invoice...";
-
-  await sendEmailNotification("AWAITING BACS PAYMENT", leader, items, grandTotal);
-  showThankYouScreen("AWAITING BACS PAYMENT", leader, items, grandTotal);
-}
-
-window.addEventListener("DOMContentLoaded", renderBadges);
+    ? `\
