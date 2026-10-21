@@ -79,7 +79,6 @@ module.exports = async (req, res) => {
 
     // 3. Fetch Terms to find active term_id
     let termId = '';
-    let termDebug = null;
     try {
       const termRes = await fetch('https://www.onlinescoutmanager.co.uk/api.php?action=getTerms', {
         method: 'POST',
@@ -89,15 +88,13 @@ module.exports = async (req, res) => {
         }
       });
       const termData = await termRes.json();
-      termDebug = termData;
-
       if (termData && termData[currentSectionId] && termData[currentSectionId].length > 0) {
         const termsList = termData[currentSectionId];
         const active = termsList.find(t => !t.past) || termsList[termsList.length - 1];
         termId = active.termid;
       }
     } catch (e) {
-      termDebug = { error: e.message };
+      console.warn('Could not fetch terms list:', e);
     }
 
     // 4. Query Badges to Buy from OSM
@@ -105,159 +102,7 @@ module.exports = async (req, res) => {
     let stockStatus = null;
     let rawStockResponse = null;
 
-    // Build parameters cleanly (prevents &sect; from becoming §)
     const stockParams = new URLSearchParams();
     stockParams.append('action', 'getBadgeStock');
     stockParams.append('section', currentSectionType);
     stockParams.append('section_id', String(currentSectionId));
-    if (termId) {
-      stockParams.append('term_id', String(termId));
-    }
-    stockParams.append('seeIfShared', 'y');
-
-    const stockUrl = `https://www.onlinescoutmanager.co.uk/ext/badges/stock/?${stockParams.toString()}`;
-
-    try {
-      // First attempt: POST with x-www-form-urlencoded (OSM's preferred API method)
-      let stockRes = await fetch('https://www.onlinescoutmanager.co.uk/ext/badges/stock/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Arrow-District-Badge-Shop/1.0'
-        },
-        body: stockParams.toString()
-      });
-
-      let resData = await stockRes.json();
-
-      // If POST gave access-error, fallback to GET
-      if (resData && resData.status === false && resData.error && resData.error.code === 'access-error-3') {
-        stockRes = await fetch(stockUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'User-Agent': 'Arrow-District-Badge-Shop/1.0'
-          }
-        });
-        resData = await stockRes.json();
-      }
-
-      stockStatus = stockRes.status;
-      rawStockResponse = resData;
-
-      if (rawStockResponse && Array.isArray(rawStockResponse.items)) {
-        rawStockResponse.items.forEach(item => {
-          const buyCount = parseInt(item.buy, 10) || 0;
-          const dueCount = parseInt(item.due, 10) || 0;
-          const count = buyCount > 0 ? buyCount : dueCount;
-
-          if (count > 0) {
-            const stockCode = item.shortname || item.badge_id_level || 'BADGE';
-            const price = PRICE_MAP[stockCode] !== undefined ? PRICE_MAP[stockCode] : DEFAULT_BADGE_PRICE;
-
-            availableBadges.push({
-              name: item.name,
-              stock_code: stockCode,
-              level: item.level || 1,
-              quantity: count,
-              unitPrice: price.toFixed(2),
-              lineTotal: (count * price).toFixed(2)
-            });
-          }
-        });
-      }
-    } catch (e) {
-      rawStockResponse = { error: e.message };
-    }
-
-    // 5. Section Switcher Bar
-    let sectionOptions = roles.map(r => {
-      const isSel = String(r.sectionid) === String(currentSectionId) ? 'selected' : '';
-      return `<option value="${r.sectionid}" ${isSel}>${r.groupname} - ${r.sectionname}</option>`;
-    }).join('');
-
-    const sectionSwitcherHtml = `
-      <div style="background:#f3e8ff; border:1px solid #d8b4fe; padding:12px 16px; border-radius:8px; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-        <div>
-          <span style="font-size:13px; color:#581c87; font-weight:bold;">Active Section:</span>
-          <b style="color:#3b0764; margin-left:5px;">${currentGroupName} (${currentSectionName})</b>
-        </div>
-        <div>
-          <label style="font-size:12px; color:#581c87; font-weight:bold; margin-right:6px;">Select Section:</label>
-          <select onchange="window.location.href='/api/auth/callback?token=${accessToken}&section_id=' + this.value" style="padding:6px 10px; border-radius:4px; border:1px solid #c084fc; font-size:13px; font-weight:bold; background:white;">
-            ${sectionOptions}
-          </select>
-        </div>
-      </div>
-    `;
-
-    // 6. Build Diagnostics Card
-    const diagnosticHtml = `
-      <div style="background:#fff7ed; border:1px solid #fed7aa; padding:1rem; border-radius:6px; margin-bottom:1.5rem; font-size:13px; color:#9a3412;">
-        <h4 style="margin:0 0 8px;">🔍 OSM API Diagnostics</h4>
-        <b>Request URL:</b> <code>${osmStockUrl}</code><br>
-        <b>HTTP Status:</b> <code>${stockStatus}</code><br>
-        <b>Term ID:</b> <code>${termId || 'None detected'}</code><br>
-        <b>Badges Parsed:</b> <code>${availableBadges.length}</code><br>
-        <details style="margin-top:8px;">
-          <summary style="cursor:pointer; font-weight:bold;">Click to View Raw Stock Response</summary>
-          <pre style="background:#fff; border:1px solid #fdba74; padding:8px; border-radius:4px; max-height:220px; overflow:auto; color:#333;">${JSON.stringify(rawStockResponse, null, 2)}</pre>
-        </details>
-      </div>
-    `;
-
-    // 7. Calculate Totals
-    let grandTotal = 0;
-    let totalBadges = 0;
-    availableBadges.forEach(b => {
-      grandTotal += parseFloat(b.lineTotal);
-      totalBadges += b.quantity;
-    });
-
-    const orderRef = 'ARROW-' + Date.now().toString().slice(-6);
-
-    let tableHtml = '';
-    if (availableBadges.length > 0) {
-      const rows = availableBadges.map(b =>
-        '<tr>' +
-          '<td><b>' + b.name + '</b></td>' +
-          '<td><code>' + b.stock_code + '</code></td>' +
-          '<td>' + b.level + '</td>' +
-          '<td class="text-right">' + b.quantity + '</td>' +
-          '<td class="text-right">&pound;' + b.unitPrice + '</td>' +
-          '<td class="text-right">&pound;' + b.lineTotal + '</td>' +
-        '</tr>'
-      ).join('');
-
-      tableHtml = '<table>' +
-        '<tr><th>Badge Name</th><th>SKU</th><th>Level</th><th class="text-right">Qty</th><th class="text-right">Unit Price</th><th class="text-right">Total</th></tr>' +
-        rows +
-        '<tr style="background:#fafafa; font-weight:bold;"><td colspan="3">Grand Total (' + totalBadges + ' badges)</td><td class="text-right">' + totalBadges + '</td><td></td><td class="text-right">&pound;' + grandTotal.toFixed(2) + '</td></tr>' +
-      '</table>';
-    } else {
-      tableHtml = '<p><i>No badges currently flagged with a buy/due quantity in this section.</i></p>';
-    }
-
-    // Read template.html
-    const templatePath = path.join(process.cwd(), 'template.html');
-    let html = fs.readFileSync(templatePath, 'utf8');
-
-    html = html
-      .replace(/{{SECTIONS}}/g, `${currentGroupName} - ${currentSectionName}`)
-      .replace(/{{ORDER_REF}}/g, orderRef)
-      .replace(/{{WARNING_HTML}}/g, sectionSwitcherHtml + diagnosticHtml)
-      .replace(/{{TABLE_HTML}}/g, tableHtml)
-      .replace(/{{ITEMS_PAYLOAD}}/g, JSON.stringify(availableBadges))
-      .replace(/{{GRAND_TOTAL}}/g, grandTotal.toFixed(2))
-      .replace(/{{WEB3FORMS_KEY}}/g, WEB3FORMS_KEY)
-      .replace(/{{DISTRICT_BANK}}/g, JSON.stringify(DISTRICT_BANK));
-
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.status(200).send(html);
-
-  } catch (err) {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.status(500).send('<h3>Error:</h3><pre>' + (err.stack || err.message) + '</pre>');
-  }
-};
