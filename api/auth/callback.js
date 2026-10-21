@@ -17,39 +17,42 @@ const DEFAULT_BADGE_PRICE = 0.90;
 const PRICE_MAP = {};
 
 module.exports = async (req, res) => {
-  const { code, section_id } = req.query;
+  const { code, section_id, token } = req.query;
   const redirectUri = `${APP_URL}/api/auth/callback`;
 
-  if (!code && !section_id) {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.status(400).send('Authorization code missing.');
-  }
+  let accessToken = token;
 
   try {
-    // 1. Exchange OAuth code for Access Token
-    const params = new URLSearchParams();
-    params.append('grant_type', 'authorization_code');
-    params.append('client_id', CLIENT_ID.trim());
-    params.append('client_secret', CLIENT_SECRET.trim());
-    params.append('redirect_uri', redirectUri);
-    params.append('code', code.trim());
+    // 1. If incoming code from OAuth redirect, exchange for access token
+    if (code && !accessToken) {
+      const params = new URLSearchParams();
+      params.append('grant_type', 'authorization_code');
+      params.append('client_id', CLIENT_ID.trim());
+      params.append('client_secret', CLIENT_SECRET.trim());
+      params.append('redirect_uri', redirectUri);
+      params.append('code', code.trim());
 
-    const tokenRes = await fetch('https://www.onlinescoutmanager.co.uk/oauth/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Arrow-District-Badge-Shop/1.0'
-      },
-      body: params.toString()
-    });
+      const tokenRes = await fetch('https://www.onlinescoutmanager.co.uk/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Arrow-District-Badge-Shop/1.0'
+        },
+        body: params.toString()
+      });
 
-    const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.status(400).send('<h3>Token Error:</h3><pre>' + JSON.stringify(tokenData, null, 2) + '</pre>');
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.status(400).send('<h3>Token Error:</h3><pre>' + JSON.stringify(tokenData, null, 2) + '</pre>');
+      }
+      accessToken = tokenData.access_token;
     }
 
-    const accessToken = tokenData.access_token;
+    if (!accessToken) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(400).send('<h3>Authorization Missing</h3><p><a href="/api/auth/login">Click here to Log In via OSM</a></p>');
+    }
 
     // 2. Fetch Leader's User Roles and Sections
     const userRes = await fetch('https://www.onlinescoutmanager.co.uk/api.php?action=getUserRoles', {
@@ -66,17 +69,40 @@ module.exports = async (req, res) => {
       return res.status(200).send('<h3>No scout sections found for this login.</h3>');
     }
 
-    // Pick the chosen section (or the first section with badge permissions)
-    let selectedRole = roles.find(r => r.sectionid === section_id) || roles.find(r => r.permissions && r.permissions.badge > 0) || roles[0];
+    // Determine which section to display (either requested in URL or the first one)
+    let selectedRole = (section_id ? roles.find(r => String(r.sectionid) === String(section_id)) : null) || roles[0];
 
-    const groupName = selectedRole.groupname || 'Arrow District';
-    const sectionName = selectedRole.sectionname || 'Scouts';
-    const sectionId = selectedRole.sectionid;
+    const currentSectionId = selectedRole.sectionid;
+    const currentGroupName = selectedRole.groupname || 'Arrow District';
+    const currentSectionName = selectedRole.sectionname || 'Scouts';
 
-    // 3. Fetch Badges Due / Needed for this Section from OSM
+    // 3. Build the Section Switcher HTML
+    let sectionOptions = roles.map(r => {
+      const isSel = String(r.sectionid) === String(currentSectionId) ? 'selected' : '';
+      return `<option value="${r.sectionid}" ${isSel}>${r.groupname} - ${r.sectionname}</option>`;
+    }).join('');
+
+    const sectionSwitcherHtml = `
+      <div style="background:#f3e8ff; border:1px solid #d8b4fe; padding:12px 16px; border-radius:8px; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div>
+          <span style="font-size:13px; color:#581c87; font-weight:bold;">Active Section:</span>
+          <b style="color:#3b0764; margin-left:5px;">${currentGroupName} (${currentSectionName})</b>
+        </div>
+        <div>
+          <label style="font-size:12px; color:#581c87; font-weight:bold; margin-right:6px;">Switch Section:</label>
+          <select onchange="window.location.href='/api/auth/callback?token=${accessToken}&section_id=' + this.value" style="padding:6px 10px; border-radius:4px; border:1px solid #c084fc; font-size:13px;">
+            ${sectionOptions}
+          </select>
+        </div>
+      </div>
+    `;
+
+    // 4. Fetch Badge Stock / Due Records for this Section
     let availableBadges = [];
+
     try {
-      const badgeRes = await fetch(`https://www.onlinescoutmanager.co.uk/ext/badges/records/?action=getBadgesDue&sectionid=${sectionId}`, {
+      // Query OSM for badge records / due list
+      const badgeRes = await fetch(`https://www.onlinescoutmanager.co.uk/ext/badges/records/?action=getBadgesDue&sectionid=${currentSectionId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -85,26 +111,27 @@ module.exports = async (req, res) => {
       });
       const badgeData = await badgeRes.json();
 
-      // Check if OSM returned due items
       if (badgeData && badgeData.items && Array.isArray(badgeData.items)) {
         badgeData.items.forEach(item => {
-          const qty = parseInt(item.needed || item.quantity || 1, 10);
-          const price = PRICE_MAP[item.stock_code] !== undefined ? PRICE_MAP[item.stock_code] : DEFAULT_BADGE_PRICE;
-          availableBadges.push({
-            name: item.badge_name || item.name || 'Badge',
-            stock_code: item.stock_code || 'BADGE',
-            level: item.level || 1,
-            quantity: qty,
-            unitPrice: price.toFixed(2),
-            lineTotal: (qty * price).toFixed(2)
-          });
+          const qty = parseInt(item.needed || item.quantity || item.due || 1, 10);
+          if (qty > 0) {
+            const price = PRICE_MAP[item.stock_code] !== undefined ? PRICE_MAP[item.stock_code] : DEFAULT_BADGE_PRICE;
+            availableBadges.push({
+              name: item.badge_name || item.name || 'Badge',
+              stock_code: item.stock_code || 'BADGE',
+              level: item.level || 1,
+              quantity: qty,
+              unitPrice: price.toFixed(2),
+              lineTotal: (qty * price).toFixed(2)
+            });
+          }
         });
       }
     } catch (e) {
-      console.warn('Could not pull automated badges:', e);
+      console.warn('Could not pull badge records:', e);
     }
 
-    // 4. Calculate Totals
+    // 5. Calculate Totals
     let grandTotal = 0;
     let totalBadges = 0;
     availableBadges.forEach(b => {
@@ -144,8 +171,8 @@ module.exports = async (req, res) => {
     } else {
       tableHtml = `
         <div style="background:#f8f9fa; padding:1.2rem; border-radius:6px; margin-bottom:1.5rem; border:1px solid #e9ecef;">
-          <p style="margin:0 0 6px;"><b>Connected to OSM!</b> No badges currently marked as "Due / Need to Buy" in section <b>${groupName} (${sectionName})</b>.</p>
-          <p style="margin:0; font-size:13px; color:#666;">You can mark badges as due in your OSM badge records, or specify extra badges needed in the collection notes below.</p>
+          <p style="margin:0 0 6px;"><b>No badges currently marked as "Due / Need to Buy"</b> in section <b>${currentGroupName} (${currentSectionName})</b>.</p>
+          <p style="margin:0; font-size:13px; color:#666;">Use the <b>Switch Section</b> drop-down above if ordering for another section, or list any additional badges required in the collection notes below.</p>
         </div>
       `;
     }
@@ -154,11 +181,11 @@ module.exports = async (req, res) => {
     const templatePath = path.join(process.cwd(), 'template.html');
     let html = fs.readFileSync(templatePath, 'utf8');
 
-    // Pre-populate template with Leader's actual OSM Group & Section
+    // Pre-populate template with the chosen section
     html = html
-      .replace(/{{SECTIONS}}/g, `${groupName} - ${sectionName}`)
+      .replace(/{{SECTIONS}}/g, `${currentGroupName} - ${currentSectionName}`)
       .replace(/{{ORDER_REF}}/g, orderRef)
-      .replace(/{{WARNING_HTML}}/g, '')
+      .replace(/{{WARNING_HTML}}/g, sectionSwitcherHtml)
       .replace(/{{TABLE_HTML}}/g, tableHtml)
       .replace(/{{ITEMS_PAYLOAD}}/g, JSON.stringify(availableBadges))
       .replace(/{{GRAND_TOTAL}}/g, grandTotal.toFixed(2))
