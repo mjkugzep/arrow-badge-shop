@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/order.js": {
+      "includeFiles": "template.html"
+    }
+  }
+}
