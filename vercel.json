@@ -2,6 +2,9 @@
   "functions": {
     "api/order.js": {
       "includeFiles": "template.html"
+    },
+    "api/auth/callback.js": {
+      "includeFiles": "template.html"
     }
   }
 }
