@@ -97,28 +97,31 @@ module.exports = async (req, res) => {
       </div>
     `;
 
-    // 4. Query Section Stock from OSM
+   // 4. Query Badges for Selected Section from OSM
     let availableBadges = [];
     let rawDebug = null;
 
     try {
-      // First try: OSM Stock screen endpoint
-      const stockRes = await fetch(`https://www.onlinescoutmanager.co.uk/ext/badges/stock/?action=getStock&sectionid=${currentSectionId}`, {
+      // Query OSM's standard badge records endpoint with action=get
+      const badgeRes = await fetch(`https://www.onlinescoutmanager.co.uk/ext/badges/records/?action=get&sectionid=${currentSectionId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'User-Agent': 'Arrow-District-Badge-Shop/1.0'
         }
       });
-      const stockData = await stockRes.json();
-      rawDebug = stockData;
+      const badgeData = await badgeRes.json();
+      rawDebug = badgeData;
 
-      // OSM Stock returns items with 'needed' or 'to_order'
-      const itemsList = Array.isArray(stockData) ? stockData : (stockData.items || stockData.details || stockData.badges || []);
+      // Extract badges that have due / completed / order counts
+      const badgeList = Array.isArray(badgeData) 
+        ? badgeData 
+        : (badgeData.items || badgeData.data || badgeData.details || []);
 
-      if (Array.isArray(itemsList) && itemsList.length > 0) {
-        itemsList.forEach(item => {
-          const qty = parseInt(item.needed || item.to_order || item.due || item.order || 0, 10);
+      if (Array.isArray(badgeList) && badgeList.length > 0) {
+        badgeList.forEach(item => {
+          // Check for any badge flagged as needing to be bought or awarded
+          const qty = parseInt(item.due || item.needed || item.to_order || item.order || item.completed || 0, 10);
           if (qty > 0) {
             const price = PRICE_MAP[item.stock_code] !== undefined ? PRICE_MAP[item.stock_code] : DEFAULT_BADGE_PRICE;
             availableBadges.push({
@@ -132,10 +135,37 @@ module.exports = async (req, res) => {
           }
         });
       }
-    } catch (e) {
-      console.warn('Stock query error:', e);
-    }
 
+      // Fallback: If records grid was empty or formatted differently, query the dashboard
+      if (availableBadges.length === 0) {
+        const dashRes = await fetch(`https://www.onlinescoutmanager.co.uk/ext/dashboard/?action=getDashboard&sectionid=${currentSectionId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'User-Agent': 'Arrow-District-Badge-Shop/1.0'
+          }
+        });
+        const dashData = await dashRes.json();
+        if (dashData && dashData.data && dashData.data.due_badges) {
+          rawDebug = { badgeData, dashData: dashData.data.due_badges };
+          const dueList = Array.isArray(dashData.data.due_badges) ? dashData.data.due_badges : [];
+          dueList.forEach(item => {
+            const qty = parseInt(item.count || item.quantity || item.needed || 1, 10);
+            availableBadges.push({
+              name: item.name || item.badge_name || 'Badge',
+              stock_code: item.stock_code || 'BADGE',
+              level: item.level || 1,
+              quantity: qty,
+              unitPrice: DEFAULT_BADGE_PRICE.toFixed(2),
+              lineTotal: (qty * DEFAULT_BADGE_PRICE).toFixed(2)
+            });
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Badge query error:', e);
+      rawDebug = { error: e.message };
+    }
     // 5. Calculate Totals
     let grandTotal = 0;
     let totalBadges = 0;
