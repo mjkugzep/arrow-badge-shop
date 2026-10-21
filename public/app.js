@@ -115,10 +115,20 @@ function parseOsmPdfText(text) {
   renderBadges();
   renderSummary();
 
+  // Hide the upload dropzone now that the shopping list has been ingested
+  const dropzone = document.querySelector(".pdf-dropzone");
+  if (dropzone) {
+    dropzone.style.display = "none";
+  }
+
+  // Smoothly scroll down to the cart / order summary
+  const summaryCard = document.getElementById("selectedTableContainer");
+  if (summaryCard) {
+    summaryCard.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   if (unmatchedBadges.length > 0) {
     alert(`✅ Loaded ${matchCount} badge(s).\n\n⚠️ ${unmatchedBadges.length} item(s) could not be matched automatically and were added to your notes:\n• ${unmatchedBadges.join("\n• ")}`);
-  } else {
-    alert(`🎉 Perfect match! All ${matchCount} badge requirement(s) from your OSM Shopping List have been added.`);
   }
 }
 
