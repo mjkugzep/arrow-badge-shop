@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arrow District Scout Shop - Badge Order Portal</title>
+  <script type="text/javascript" src="https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js"></script>
+  <style>
+    :root {
+      --primary: #4d2177;
+      --primary-hover: #3b175e;
+      --accent: #008751;
+      --accent-hover: #006e41;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .header {
+      background: var(--primary);
+      color: white;
+      padding: 1.75rem;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .header h1 { margin: 0 0 6px; font-size: 26px; }
+    .header p { margin: 0; opacity: 0.9; font-size: 14px; }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .form-row { display: flex; gap: 14px; flex-wrap: wrap; }
+    .form-row .form-group { flex: 1; min-width: 220px; }
+    
+    /* Badge Picker */
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .search-bar input {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
+    .filter-pill {
+      background: #e2e8f0;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .filter-pill.active { background: var(--primary); color: white; }
+    .badge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 10px;
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 4px;
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+    .badge-item {
+      background: white;
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .badge-item .info { flex: 1; padding-right: 8px; }
+    .badge-item .info b { font-size: 13px; display: block; }
+    .badge-item .info span { font-size: 11px; color: var(--text-muted); }
+    .qty-controls { display: flex; align-items: center; gap: 6px; }
+    .qty-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qty-btn:hover { background: #f1f5f9; }
+    .qty-num { width: 26px; text-align: center; font-weight: bold; font-size: 13px; }
+
+    /* Order Summary Table */
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 8px 12px; border: 1px solid var(--border); font-size: 13px; text-align: left; }
+    th { background: #f1f5f9; }
+    .text-right { text-align: right; }
+    
+    /* Buttons */
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 12px 22px;
+      font-size: 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-bacs { background: var(--primary); margin-left: 10px; }
+    .btn-bacs:hover { background: var(--primary-hover); }
+    .btn-print {
+      background: var(--primary);
+      color: white;
+      padding: 10px 18px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .invoice-card { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; }
+    .invoice-card.bacs { background: #eff6ff; border-color: #bfdbfe; }
+    @media print {
+      .btn-print, #headerLogo { display: none !important; }
+      body { margin: 0; padding: 0; max-width: 100%; background: white; }
+      .card, .header { box-shadow: none; border: 1px solid #ddd; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="mainView">
+    <div class="header">
+      <h1>Arrow District Scout Shop</h1>
+      <p>District Badge Ordering Portal | All Badges £0.90 each</p>
+    </div>
+
+    <!-- Leader & Group Details -->
+    <div class="card">
+      <h3 style="margin-top:0;">1. Leader & Delivery Information</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Leader Name:</label>
+          <input type="text" id="leaderName" placeholder="e.g. Skip Smith" required>
+        </div>
+        <div class="form-group">
+          <label>Leader Email:</label>
+          <input type="email" id="leaderEmail" placeholder="skip@example.org.uk" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Scout Group / Explorer Unit:</label>
+          <select id="leaderGroup" required>
+            <option value="">-- Select Your Group --</option>
+            <option value="1st Chandler's Ford (Brickfield Lane)">1st Chandler's Ford (Brickfield Lane)</option>
+            <option value="1st Eastleigh">1st Eastleigh</option>
+            <option value="1st Fair Oak">1st Fair Oak</option>
+            <option value="2nd Chandler's Ford (Ramalley)">2nd Chandler's Ford (Ramalley)</option>
+            <option value="3rd Chandler's Ford (U.R.C.)">3rd Chandler's Ford (U.R.C.)</option>
+            <option value="4th Chandler's Ford (Hiltingbury)">4th Chandler's Ford (Hiltingbury)</option>
+            <option value="4th Eastleigh">4th Eastleigh</option>
+            <option value="7th Chandler's Ford">7th Chandler's Ford</option>
+            <option value="7th Eastleigh (2nd Fair Oak)">7th Eastleigh (2nd Fair Oak)</option>
+            <option value="11th Eastleigh (North Stoneham)">11th Eastleigh (North Stoneham)</option>
+            <option value="12th Eastleigh (1st Bishopstoke)">12th Eastleigh (1st Bishopstoke)</option>
+            <option value="Bishopstoke Sea Scouts (13th Eastleigh)">Bishopstoke Sea Scouts (13th Eastleigh)</option>
+            <option value="14th Eastleigh">14th Eastleigh</option>
+            <option value="15th Chandler's Ford (Allbrook & Otterbourne)">15th Chandler's Ford (Allbrook & Otterbourne)</option>
+            <option disabled>────────── Explorer Units ──────────</option>
+            <option value="Cobra Explorer Scouts">Cobra Explorer Scouts</option>
+            <option value="Fusion Explorer Scouts">Fusion Explorer Scouts</option>
+            <option value="Gecko Explorer Scouts">Gecko Explorer Scouts</option>
+            <option value="Kayoss Explorer Scouts">Kayoss Explorer Scouts</option>
+            <option value="Panthers Explorer Scouts">Panthers Explorer Scouts</option>
+            <option value="Phoenix Explorer Scouts">Phoenix Explorer Scouts</option>
+            <option value="Pleiades Explorer Scouts">Pleiades Explorer Scouts</option>
+            <option value="Scorpion Explorer Scouts">Scorpion Explorer Scouts</option>
+            <option disabled>────────── Other ──────────</option>
+            <option value="Arrow District (Network / Team)">Arrow District (Network / Team)</option>
+            <option value="Other / Out of District">Other / Out of District</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Section:</label>
+          <select id="leaderSection" required>
+            <option value="Squirrels">Squirrels</option>
+            <option value="Beavers">Beavers</option>
+            <option value="Cubs">Cubs</option>
+            <option value="Scouts" selected>Scouts</option>
+            <option value="Explorers">Explorers</option>
+            <option value="Network">Network</option>
+            <option value="Whole Group (Multiple Sections)">Whole Group (Multiple Sections)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Collection Notes / Pigeon Hole Instructions:</label>
+        <textarea id="leaderNotes" rows="2" placeholder="e.g. Will collect Thursday evening, or please place in our group pigeon hole."></textarea>
+      </div>
+    </div>
+
+    <!-- Badge Selector -->
+    <div class="card">
+      <h3 style="margin-top:0;">2. Select Badges</h3>
+
+      <div class="search-bar">
+        <input type="text" id="badgeSearch" placeholder="🔍 Search badges by name (e.g. Outdoors, Nights Away, Chief Scout)..." oninput="renderBadges()">
+      </div>
+
+      <div class="filter-pills">
+        <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
+        <button class="filter-pill" onclick="setFilter('staged', this)">Staged Badges</button>
+        <button class="filter-pill" onclick="setFilter('scouts', this)">Scouts</button>
+        <button class="filter-pill" onclick="setFilter('cubs', this)">Cubs</button>
+        <button class="filter-pill" onclick="setFilter('beavers', this)">Beavers</button>
+        <button class="filter-pill" onclick="setFilter('squirrels', this)">Squirrels</button>
+        <button class="filter-pill" onclick="setFilter('awards', this)">Core & Awards</button>
+      </div>
+
+      <div class="badge-grid" id="badgeGrid"></div>
+
+      <div class="form-group" style="margin-top:1.2rem;">
+        <label>Additional / Unlisted Badges (or Specific Staged Levels):</label>
+        <textarea id="extraBadges" rows="2" placeholder="e.g. 2x Swimmer Level 3, 1x Occasional St George badge"></textarea>
+      </div>
+    </div>
+
+    <!-- Order Summary & Checkout -->
+    <div class="card">
+      <h3 style="margin-top:0;">3. Order Summary & Payment</h3>
+      <div id="selectedTableContainer">
+        <p style="color:var(--text-muted); font-size:14px;">No badges selected yet. Use the <b>+</b> buttons above to add badges.</p>
+      </div>
+
+      <div id="payment-buttons" style="margin-top:1.5rem; display:none;">
+        <button class="btn" id="cardBtn" onclick="startSumUpPayment()">💳 Pay with Card / Apple Pay</button>
+        <button class="btn btn-bacs" id="bacsBtn" onclick="requestBACS()">🏛️ Request BACS Invoice for Treasurer</button>
+      </div>
+
+      <div id="sumup-card-container" style="display:none; margin-top:1.5rem; max-width:440px;">
+        <h4>Enter Card Details</h4>
+        <div id="sumup-card"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thank You / Receipt View -->
+  <div id="thankYouView" style="display:none;">
+    <div class="header" style="background:var(--accent);">
+      <h1>Thank You for Your Order!</h1>
+      <p>Order Reference: <b id="tyOrderRef"></b></p>
+    </div>
+
+    <button class="btn-print" onclick="window.print()">🖨️ Print / Save Receipt as PDF</button>
+
+    <div id="tyStatusCard" class="invoice-card"></div>
+    <h3>Order Summary</h3>
+    <div id="tyItemsTable"></div>
+    
+    <div style="background:#f8f9fa; padding:1.25rem; border-radius:6px; margin:1.5rem 0; font-size:14px; border:1px solid #e2e8f0;">
+      <b>Leader / Group:</b> <span id="tyLeader"></span><br>
+      <b>Contact Email:</b> <span id="tyEmail"></span><br>
+      <b>Collection / Delivery Notes:</b> <span id="tyNotes"></span>
+    </div>
+
+    <button class="btn-print" onclick="window.print()">🖨️ Print / Save Receipt as PDF</button>
+  </div>
+
+  <script>
+    const BADGE_PRICE = 0.90;
+    const WEB3FORMS_KEY = "454aaffb-de18-4c39-a511-398c15397a9b";
+    const DISTRICT_BANK = {
+      accountName: "Arrow Scout District",
+      sortCode: "30-99-50",
+      accountNumber: "37451768",
+      bankName: "Lloyds Bank"
+    };
+
+    // Pre-loaded catalogue of core UK Scout badges
+    const CATALOGUE = [
+      // Core & Challenge Awards
+      { id: "cs_gold", name: "Chief Scout's Gold Award", cat: "awards" },
+      { id: "cs_silver", name: "Chief Scout's Silver Award", cat: "awards" },
+      { id: "cs_bronze", name: "Chief Scout's Bronze Award", cat: "awards" },
+      { id: "cs_acorn", name: "Chief Scout's Acorn Award", cat: "awards" },
+      { id: "membership", name: "World Membership Badge", cat: "awards" },
+      { id: "moving_on", name: "Moving On Award", cat: "awards" },
+      { id: "union_flag", name: "Union Flag", cat: "awards" },
+      { id: "joining_in", name: "Joining In Award", cat: "awards" },
+      { id: "youshape", name: "YouShape Award (Central)", cat: "awards" },
+
+      // Scout Challenge Awards
+      { id: "sc_adventure", name: "Scouts - Adventure Challenge", cat: "scouts" },
+      { id: "sc_creative", name: "Scouts - Creative Challenge", cat: "scouts" },
+      { id: "sc_expedition", name: "Scouts - Expedition Challenge", cat: "scouts" },
+      { id: "sc_outdoors", name: "Scouts - Outdoors Challenge", cat: "scouts" },
+      { id: "sc_personal", name: "Scouts - Personal Challenge", cat: "scouts" },
+      { id: "sc_skills", name: "Scouts - Skills Challenge", cat: "scouts" },
+      { id: "sc_team_leader", name: "Scouts - Team Leader Challenge", cat: "scouts" },
+      { id: "sc_teamwork", name: "Scouts - Teamwork Challenge", cat: "scouts" },
+      { id: "sc_world", name: "Scouts - World Challenge", cat: "scouts" },
+      { id: "sc_athletics", name: "Scouts - Athletics Activity", cat: "scouts" },
+      { id: "sc_camper", name: "Scouts - Camper Activity", cat: "scouts" },
+      { id: "sc_chef", name: "Scouts - Chef Activity", cat: "scouts" },
+      { id: "sc_communicator", name: "Scouts - Communicator Activity", cat: "scouts" },
+      { id: "sc_cyclist", name: "Scouts - Cyclist Activity", cat: "scouts" },
+      { id: "sc_diy", name: "Scouts - DIY Activity", cat: "scouts" },
+      { id: "sc_fire_safety", name: "Scouts - Fire Safety", cat: "scouts" },
+      { id: "sc_forester", name: "Scouts - Forester", cat: "scouts" },
+      { id: "sc_naturalist", name: "Scouts - Naturalist", cat: "scouts" },
+      { id: "sc_pioneer", name: "Scouts - Pioneer", cat: "scouts" },
+      { id: "sc_survival", name: "Scouts - Survival Skills", cat: "scouts" },
+
+      // Cub Challenge Awards
+      { id: "cub_adventure", name: "Cubs - Our Adventure Challenge", cat: "cubs" },
+      { id: "cub_outdoors", name: "Cubs - Our Outdoors Challenge", cat: "cubs" },
+      { id: "cub_skills", name: "Cubs - Our Skills Challenge", cat: "cubs" },
+      { id: "cub_world", name: "Cubs - Our World Challenge", cat: "cubs" },
+      { id: "cub_teamwork", name: "Cubs - Teamwork Challenge", cat: "cubs" },
+      { id: "cub_team_leader", name: "Cubs - Team Leader Challenge", cat: "cubs" },
+      { id: "cub_personal", name: "Cubs - Personal Challenge", cat: "cubs" },
+      { id: "cub_book_reader", name: "Cubs - Book Reader", cat: "cubs" },
+      { id: "cub_chef", name: "Cubs - Chef", cat: "cubs" },
+      { id: "cub_communicator", name: "Cubs - Communicator", cat: "cubs" },
+      { id: "cub_cyclist", name: "Cubs - Cyclist", cat: "cubs" },
+      { id: "cub_diy", name: "Cubs - DIY", cat: "cubs" },
+      { id: "cub_entertainer", name: "Cubs - Entertainer", cat: "cubs" },
+      { id: "cub_home_help", name: "Cubs - Home Help", cat: "cubs" },
+      { id: "cub_martial_arts", name: "Cubs - Martial Arts", cat: "cubs" },
+      { id: "cub_naturalist", name: "Cubs - Naturalist", cat: "cubs" },
+      { id: "cub_scientist", name: "Cubs - Scientist", cat: "cubs" },
+
+      // Beaver Challenge Awards
+      { id: "bv_adventure", name: "Beavers - My Adventure Challenge", cat: "beavers" },
+      { id: "bv_outdoors", name: "Beavers - My Outdoors Challenge", cat: "beavers" },
+      { id: "bv_skills", name: "Beavers - My Skills Challenge", cat: "beavers" },
+      { id: "bv_world", name: "Beavers - My World Challenge", cat: "beavers" },
+      { id: "bv_personal", name: "Beavers - Personal Challenge", cat: "beavers" },
+      { id: "bv_teamwork", name: "Beavers - Teamwork Challenge", cat: "beavers" },
+      { id: "bv_book_reader", name: "Beavers - Book Reader", cat: "beavers" },
+      { id: "bv_campcraft", name: "Beavers - Campcraft", cat: "beavers" },
+      { id: "bv_collector", name: "Beavers - Collector", cat: "beavers" },
+      { id: "bv_communicator", name: "Beavers - Communicator", cat: "beavers" },
+      { id: "bv_cook", name: "Beavers - Cook", cat: "beavers" },
+      { id: "bv_cyclist", name: "Beavers - Cyclist", cat: "beavers" },
+      { id: "bv_experiment", name: "Beavers - Experiment", cat: "beavers" },
+      { id: "bv_explore", name: "Beavers - Explore", cat: "beavers" },
+
+      // Squirrels
+      { id: "sq_all_about_me", name: "Squirrels - All About Me", cat: "squirrels" },
+      { id: "sq_all_around_us", name: "Squirrels - All Around Us", cat: "squirrels" },
+      { id: "sq_all_together", name: "Squirrels - All Together", cat: "squirrels" },
+      { id: "sq_feel_good", name: "Squirrels - Feel Good", cat: "squirrels" },
+      { id: "sq_brilliant_builder", name: "Squirrels - Brilliant Builder", cat: "squirrels" },
+      { id: "sq_exciting_explorer", name: "Squirrels - Exciting Explorer", cat: "squirrels" },
+      { id: "sq_go_wild", name: "Squirrels - Go Wild", cat: "squirrels" },
+      { id: "sq_super_chef", name: "Squirrels - Super Chef", cat: "squirrels" },
+
+      // Staged Activity Badges
+      { id: "st_nights_away", name: "Staged - Nights Away (specify lvl)", cat: "staged" },
+      { id: "st_hikes", name: "Staged - Hikes Away (specify lvl)", cat: "staged" },
+      { id: "st_swimmer", name: "Staged - Swimmer (specify lvl)", cat: "staged" },
+      { id: "st_emergency_aid", name: "Staged - Emergency Aid (specify lvl)", cat: "staged" },
+      { id: "st_navigator", name: "Staged - Navigator (specify lvl)", cat: "staged" },
+      { id: "st_time_on_water", name: "Staged - Time on the Water (specify lvl)", cat: "staged" },
+      { id: "st_paddle_sports", name: "Staged - Paddle Sports (specify lvl)", cat: "staged" },
+      { id: "st_sailing", name: "Staged - Sailing (specify lvl)", cat: "staged" },
+      { id: "st_musician", name: "Staged - Musician (specify lvl)", cat: "staged" },
+      { id: "st_digital_citizen", name: "Staged - Digital Citizen (specify lvl)", cat: "staged" },
+      { id: "st_digital_maker", name: "Staged - Digital Maker (specify lvl)", cat: "staged" },
+      { id: "st_community_impact", name: "Staged - Community Impact (specify lvl)", cat: "staged" }
+    ];
+
+    let currentFilter = "all";
+    let orderQuantities = {};
+    let orderRef = "ARROW-" + Date.now().toString().slice(-6);
+
+    function setFilter(cat, elem) {
+      currentFilter = cat;
+      document.querySelectorAll(".filter-pill").forEach(p => p.classList.remove("active"));
+      elem.classList.add("active");
+      renderBadges();
+    }
+
+    function renderBadges() {
+      const query = (document.getElementById("badgeSearch").value || "").toLowerCase().trim();
+      const grid = document.getElementById("badgeGrid");
+      grid.innerHTML = "";
+
+      const filtered = CATALOGUE.filter(b => {
+        const matchesCat = (currentFilter === "all" || b.cat === currentFilter);
+        const matchesQuery = (!query || b.name.toLowerCase().indexOf(query) !== -1);
+        return matchesCat && matchesQuery;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div style="padding:15px; color:#888; grid-column:1/-1;">No badges found matching that search. You can list them in the "Additional Badges" box below.</div>';
+        return;
+      }
+
+      filtered.forEach(b => {
+        const qty = orderQuantities[b.id] || 0;
+        const item = document.createElement("div");
+        item.className = "badge-item";
+        item.innerHTML = `
+          <div class="info">
+            <b>${b.name}</b>
+            <span>£0.90</span>
+          </div>
+          <div class="qty-controls">
+            <button class="qty-btn" onclick="updateQty('${b.id}', -1)">−</button>
+            <span class="qty-num">${qty}</span>
+            <button class="qty-btn" onclick="updateQty('${b.id}', 1)">+</button>
+          </div>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    function updateQty(id, delta) {
+      const current = orderQuantities[id] || 0;
+      const next = Math.max(0, current + delta);
+      if (next === 0) {
+        delete orderQuantities[id];
+      } else {
+        orderQuantities[id] = next;
+      }
+      renderBadges();
+      renderSummary();
+    }
+
+    function getSelectedBadges() {
+      const list = [];
+      Object.keys(orderQuantities).forEach(id => {
+        const badge = CATALOGUE.find(b => b.id === id);
+        if (badge && orderQuantities[id] > 0) {
+          list.push({
+            name: badge.name,
+            quantity: orderQuantities[id],
+            unitPrice: BADGE_PRICE,
+            lineTotal: (orderQuantities[id] * BADGE_PRICE).toFixed(2)
+          });
+        }
+      });
+      return list;
+    }
+
+    function renderSummary() {
+      const items = getSelectedBadges();
+      const container = document.getElementById("selectedTableContainer");
+      const payButtons = document.getElementById("payment-buttons");
+      const cardBtn = document.getElementById("cardBtn");
+
+      if (items.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">No badges selected yet. Use the <b>+</b> buttons above to add badges.</p>';
+        payButtons.style.display = "none";
+        return;
+      }
+
+      let totalQty = 0;
+      let grandTotal = 0;
+      let rows = items.map(b => {
+        totalQty += b.quantity;
+        grandTotal += parseFloat(b.lineTotal);
+        return `<tr>
+          <td><b>${b.name}</b></td>
+          <td class="text-right">${b.quantity}</td>
+          <td class="text-right">£${b.unitPrice.toFixed(2)}</td>
+          <td class="text-right">£${b.lineTotal}</td>
+        </tr>`;
+      }).join("");
+
+      container.innerHTML = `
+        <table>
+          <tr><th>Badge Name</th><th class="text-right">Qty</th><th class="text-right">Price</th><th class="text-right">Total</th></tr>
+          ${rows}
+          <tr style="background:#fafafa; font-weight:bold;">
+            <td>Total (${totalQty} badges)</td>
+            <td class="text-right">${totalQty}</td>
+            <td></td>
+            <td class="text-right">£${grandTotal.toFixed(2)}</td>
+          </tr>
+        </table>
+      `;
+
+      cardBtn.innerText = `💳 Pay £${grandTotal.toFixed(2)} with Card / Apple Pay`;
+      payButtons.style.display = "block";
+    }
+
+    function validateLeader() {
+      const name = document.getElementById("leaderName").value.trim();
+      const email = document.getElementById("leaderEmail").value.trim();
+      const group = document.getElementById("leaderGroup").value;
+      const section = document.getElementById("leaderSection").value;
+      const items = getSelectedBadges();
+
+      if (!name || !email) {
+        alert("Please enter your Leader Name and Email.");
+        return false;
+      }
+      if (!group) {
+        alert("Please select your Scout Group / Unit.");
+        return false;
+      }
+      if (items.length === 0 && !document.getElementById("extraBadges").value.trim()) {
+        alert("Please select at least one badge or specify badges in the additional box.");
+        return false;
+      }
+
+      return {
+        leaderName: name,
+        leaderEmail: email,
+        leaderGroup: `${group} - ${section}`,
+        leaderNotes: document.getElementById("leaderNotes").value.trim() || "None specified",
+        extraBadges: document.getElementById("extraBadges").value.trim()
+      };
+    }
+
+    async function sendEmailNotification(paymentType, leaderInfo, items, grandTotal) {
+      let pickingList = items.map(i => `${i.quantity}x ${i.name} = £${i.lineTotal}`).join("\n");
+      if (leaderInfo.extraBadges) {
+        pickingList += `\n\nEXTRA / UNLISTED BADGES REQUESTED:\n${leaderInfo.extraBadges}`;
+      }
+
+      const bacsDetails = (paymentType.indexOf("BACS") !== -1)
+        ? `\nBACS INSTRUCTIONS FOR GROUP TREASURER:\nAccount Name  : ${DISTRICT_BANK.accountName}\nSort Code     : ${DISTRICT_BANK.sortCode}\nAccount Number: ${DISTRICT_BANK.accountNumber}\nPayment Ref   : #${orderRef}\n`
+        : "";
+
+      const bodyText =
+        `ARROW DISTRICT SCOUT SHOP - BADGE ORDER\n` +
+        `----------------------------------------\n` +
+        `Order Ref     : #${orderRef}\n` +
+        `Date          : ${new Date().toLocaleDateString("en-GB")}\n` +
+        `Status        : ${paymentType}\n\n` +
+        `LEADER & COLLECTION DETAILS:\n` +
+        `Leader Name   : ${leaderInfo.leaderName}\n` +
+        `Group/Section : ${leaderInfo.leaderGroup}\n` +
+        `Leader Email  : ${leaderInfo.leaderEmail}\n` +
+        `Collection Note: ${leaderInfo.leaderNotes}\n\n` +
+        `PICKING LIST:\n` +
+        pickingList + `\n` +
+        `----------------------------------------\n` +
+        `Grand Total   : £${grandTotal.toFixed(2)}\n` +
+        `----------------------------------------\n` +
+        bacsDetails + `\n` +
+        (paymentType.indexOf("BACS") !== -1
+          ? "ACTION: Badge Secretary to verify BACS transfer before releasing badges."
+          : "CONFIRMED: Paid online via SumUp card payment.");
+
+      try {
+        await fetch("https://api.web3forms.com/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({
+            access_key: WEB3FORMS_KEY,
+            subject: `[Badge Order] #${orderRef} - ${leaderInfo.leaderGroup} (${paymentType})`,
+            from_name: "Arrow District Badge Shop",
+            email: leaderInfo.leaderEmail,
+            message: bodyText
+          })
+        });
+      } catch (err) {
+        console.error("Web3Forms error:", err);
+      }
+    }
+
+    function showThankYouScreen(paymentType, leaderInfo, items, grandTotal) {
+      document.getElementById("mainView").style.display = "none";
+      document.getElementById("thankYouView").style.display = "block";
+      document.getElementById("tyOrderRef").innerText = "#" + orderRef;
+      document.getElementById("tyLeader").innerText = `${leaderInfo.leaderName} (${leaderInfo.leaderGroup})`;
+      document.getElementById("tyEmail").innerText = leaderInfo.leaderEmail;
+      document.getElementById("tyNotes").innerText = leaderInfo.leaderNotes;
+
+      const statusCard = document.getElementById("tyStatusCard");
+      if (paymentType.indexOf("BACS") !== -1) {
+        statusCard.className = "invoice-card bacs";
+        statusCard.innerHTML = `
+          <h3 style="margin-top:0; color:#1e40af;">🏛️ BACS Invoice & Payment Details</h3>
+          <p>Your order has been recorded. Please save or print this page and forward the details below to your <b>Group Treasurer</b> to complete BACS payment:</p>
+          <table style="background:white; max-width:400px; margin-top:10px;">
+            <tr><td><b>Account Name:</b></td><td>${DISTRICT_BANK.accountName}</td></tr>
+            <tr><td><b>Sort Code:</b></td><td>${DISTRICT_BANK.sortCode}</td></tr>
+            <tr><td><b>Account No:</b></td><td>${DISTRICT_BANK.accountNumber}</td></tr>
+            <tr><td><b>Payment Reference:</b></td><td><code>${orderRef}</code></td></tr>
+            <tr><td><b>Total Due:</b></td><td><b>£${grandTotal.toFixed(2)}</b></td></tr>
+          </table>
+        `;
+      } else {
+        statusCard.className = "invoice-card";
+        statusCard.innerHTML = `
+          <h3 style="margin-top:0; color:#166534;">✅ Payment Received via SumUp</h3>
+          <p>Thank you! Your payment of <b>£${grandTotal.toFixed(2)}</b> has been confirmed. The Badge Secretary has received your picking slip and collection notes.</p>
+        `;
+      }
+
+      let tyTable = `<table style="margin-top:10px;"><tr><th>Badge</th><th class="text-right">Qty</th><th class="text-right">Total</th></tr>`;
+      items.forEach(i => {
+        tyTable += `<tr><td>${i.name}</td><td class="text-right">${i.quantity}</td><td class="text-right">£${i.lineTotal}</td></tr>`;
+      });
+      if (leaderInfo.extraBadges) {
+        tyTable += `<tr><td colspan="3"><b>Additional Badges:</b> ${leaderInfo.extraBadges}</td></tr>`;
+      }
+      tyTable += `<tr style="font-weight:bold; background:#fafafa;"><td>Grand Total</td><td class="text-right">${items.reduce((a,b)=>a+b.quantity,0)}</td><td class="text-right">£${grandTotal.toFixed(2)}</td></tr></table>`;
+      document.getElementById("tyItemsTable").innerHTML = tyTable;
+      window.scrollTo(0, 0);
+    }
+
+    async function startSumUpPayment() {
+      const leader = validateLeader();
+      if (!leader) return;
+
+      const items = getSelectedBadges();
+      const grandTotal = items.reduce((sum, b) => sum + parseFloat(b.lineTotal), 0);
+      const btn = document.getElementById("cardBtn");
+      btn.disabled = true;
+      btn.innerText = "Initializing payment...";
+
+      try {
+        const res = await fetch('/api/order', {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "create_sumup",
+            orderRef: orderRef,
+            amount: grandTotal,
+            description: "Arrow District Badges"
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.id) {
+          alert("Payment error: " + (data.error || "Could not start SumUp checkout."));
+          btn.disabled = false;
+          btn.innerText = `💳 Pay £${grandTotal.toFixed(2)} with Card / Apple Pay`;
+          return;
+        }
+
+        document.getElementById("sumup-card-container").style.display = "block";
+        document.getElementById("payment-buttons").style.display = "none";
+
+        SumUpCard.mount({
+          id: "sumup-card",
+          checkoutId: data.id,
+          onResponse: async function (type) {
+            if (type === "success") {
+              await sendEmailNotification("PAID ONLINE (SumUp Card)", leader, items, grandTotal);
+              showThankYouScreen("PAID ONLINE (SumUp Card)", leader, items, grandTotal);
+            } else if (type === "error") {
+              alert("Payment declined or encountered an error.");
+            }
+          }
+        });
+
+      } catch (e) {
+        alert("Error: " + e.message);
+        btn.disabled = false;
+        btn.innerText = `💳 Pay £${grandTotal.toFixed(2)} with Card / Apple Pay`;
+      }
+    }
+
+    async function requestBACS() {
+      const leader = validateLeader();
+      if (!leader) return;
+
+      const items = getSelectedBadges();
+      const grandTotal = items.reduce((sum, b) => sum + parseFloat(b.lineTotal), 0);
+      const btn = document.getElementById("bacsBtn");
+      btn.disabled = true;
+      btn.innerText = "Generating Invoice...";
+
+      await sendEmailNotification("AWAITING BACS PAYMENT", leader, items, grandTotal);
+      showThankYouScreen("AWAITING BACS PAYMENT", leader, items, grandTotal);
+    }
+
+    // Initialize catalogue on page load
+    window.addEventListener("DOMContentLoaded", renderBadges);
+  </script>
+</body>
+</html>
