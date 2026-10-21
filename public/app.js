@@ -3,7 +3,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 const BADGE_PRICE = 0.90;
 const WEB3FORMS_KEY = "454aaffb-de18-4c39-a511-398c15397a9b";
 const DISTRICT_BANK = {
-  accountName: "Arrow Scout District",
+  accountName: "Arrow Scout District1",
   sortCode: "30-99-50",
   accountNumber: "37451768",
   bankName: "Lloyds Bank"
