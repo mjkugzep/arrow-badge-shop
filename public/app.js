@@ -14,13 +14,19 @@ let orderQuantities = {};
 let orderRef = "BADGES-" + Date.now().toString().slice(-4);
 
 function cleanBadgeStr(str) {
-  return str
+  let s = str
     .toLowerCase()
     .replace(/\blvl\.?\s*/g, " ")
     .replace(/\blevel\s*/g, " ")
     .replace(/[^a-z0-9]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+
+  // Normalize "hikes 5" to "hikes away 5"
+  if (s.startsWith("hikes ") && !s.startsWith("hikes away ")) {
+    s = s.replace(/^hikes\s+/, "hikes away ");
+  }
+  return s;
 }
 
 async function handlePdfUpload(e) {
@@ -49,9 +55,9 @@ function parseOsmPdfText(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
   let matchCount = 0;
   let unmatchedBadges = [];
-  let detectedSection = "scouts"; // default fallback
+  let detectedSection = "scouts";
 
-  // 1. Detect Group and Section from header (e.g. "4th Eastleigh: Scouts")
+  // 1. Detect Group and Section from header
   for (let i = 0; i < Math.min(lines.length, 6); i++) {
     const line = lines[i];
     if (line.includes(":")) {
@@ -90,18 +96,27 @@ function parseOsmPdfText(text) {
     const nextLine = lines[i + 1];
     const qty = parseInt(nextLine, 10);
 
-    if (!isNaN(qty) && qty > 0 && isNaN(parseInt(line, 10)) && !ignoreWords.includes(line.toLowerCase())) {
+    // Filter headers, pure numbers, or orphaned parentheses lines like "(Blanket Badges)"
+    const isOrphanBracket = line.startsWith("(") && line.endsWith(")");
+
+    if (!isNaN(qty) && qty > 0 && isNaN(parseInt(line, 10)) && !ignoreWords.includes(line.toLowerCase()) && !isOrphanBracket) {
       const targetClean = cleanBadgeStr(line);
       
-      // Match with priority given to the section detected from the PDF
+      // Match candidate against both clean name and optional aliases
       let candidates = CATALOGUE.filter(b => {
         const catClean = cleanBadgeStr(b.name);
-        return catClean === targetClean || targetClean.includes(catClean) || catClean.includes(targetClean);
+        const nameMatch = (catClean === targetClean || targetClean.includes(catClean) || catClean.includes(targetClean));
+        
+        let aliasMatch = false;
+        if (b.aliases && b.aliases.length > 0) {
+          aliasMatch = b.aliases.some(a => cleanBadgeStr(a) === targetClean);
+        }
+
+        return nameMatch || aliasMatch;
       });
 
       let match = null;
       if (candidates.length > 0) {
-        // Look for candidate matching current section first (e.g. Scouts)
         match = candidates.find(b => b.cat === detectedSection) || candidates[0];
       }
 
