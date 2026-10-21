@@ -57,7 +57,7 @@ function parseOsmPdfText(text) {
   let unmatchedBadges = [];
   let detectedSection = "scouts";
 
-  // 1. Detect Group and Section from header
+  // 1. Detect Group and Section from header (e.g. "4th Eastleigh: Scouts")
   for (let i = 0; i < Math.min(lines.length, 6); i++) {
     const line = lines[i];
     if (line.includes(":")) {
@@ -96,13 +96,11 @@ function parseOsmPdfText(text) {
     const nextLine = lines[i + 1];
     const qty = parseInt(nextLine, 10);
 
-    // Filter headers, pure numbers, or orphaned parentheses lines like "(Blanket Badges)"
     const isOrphanBracket = line.startsWith("(") && line.endsWith(")");
 
     if (!isNaN(qty) && qty > 0 && isNaN(parseInt(line, 10)) && !ignoreWords.includes(line.toLowerCase()) && !isOrphanBracket) {
       const targetClean = cleanBadgeStr(line);
       
-      // Match candidate against both clean name and optional aliases
       let candidates = CATALOGUE.filter(b => {
         const catClean = cleanBadgeStr(b.name);
         const nameMatch = (catClean === targetClean || targetClean.includes(catClean) || catClean.includes(targetClean));
@@ -283,8 +281,13 @@ function validateLeader() {
   const section = document.getElementById("leaderSection").value;
   const items = getSelectedBadges();
 
-  if (!name || !email) {
-    alert("Please enter your Leader Name and Email.");
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!name) {
+    alert("Please enter your Leader Name.");
+    return false;
+  }
+  if (!email || !emailRegex.test(email)) {
+    alert("Please enter a valid, complete email address (e.g. name@group.org.uk).");
     return false;
   }
   if (!group) {
@@ -345,6 +348,7 @@ async function sendEmailNotification(paymentType, leaderInfo, items, grandTotal)
         subject: `[Badge Order] #${orderRef} - ${leaderInfo.leaderGroup} (${paymentType})`,
         from_name: "Arrow District Badge Shop",
         email: leaderInfo.leaderEmail,
+        replyto: leaderInfo.leaderEmail,
         message: bodyText
       })
     });
