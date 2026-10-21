@@ -1,9 +1,11 @@
 // Helper to create staged badges with all official level tiers
-function makeStaged(name, levels) {
+function makeStaged(name, levels, altName = null) {
   return levels.map(lvl => ({
     id: "st_" + name.toLowerCase().replace(/[^a-z0-9]/g, "_") + "_lvl" + lvl,
     name: "Staged - " + name + " (Level " + lvl + ")",
-    cat: "staged"
+    cat: "staged",
+    // Store alternative search phrases (e.g. "Hikes Lvl 5" without "Away")
+    aliases: altName ? [altName.toLowerCase() + " " + lvl] : []
   }));
 }
 
@@ -18,12 +20,14 @@ const CATALOGUE = [
   { id: "union_flag", name: "Core - Union Flag", cat: "awards" },
   ...makeStaged("Joining In", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
   { id: "youshape", name: "Core - YouShape Award (Central)", cat: "awards" },
+  { id: "activity_plus", name: "Core - Activity Plus (Advanced)", cat: "awards" },
   { id: "hampshire_id", name: "Identity - Hampshire County", cat: "awards" },
   { id: "district_id", name: "Identity - Eastleigh / Arrow District", cat: "awards" },
 
   // --- Staged Activity Badges (All Sections) ---
-  ...makeStaged("Nights Away", [1, 2, 3, 4, 5, 10, 15, 20, 35, 50, 75, 100, 125, 150, 175, 200]),
-  ...makeStaged("Hikes Away", [1, 2, 5, 10, 15, 20, 35, 50, 75, 100]),
+  // Notice the second argument: matches both "Hikes" and "Hikes Away"
+  ...makeStaged("Nights Away", [1, 2, 3, 4, 5, 10, 15, 20, 35, 50, 75, 100, 125, 150, 175, 200], "Nights Away"),
+  ...makeStaged("Hikes Away", [1, 2, 5, 10, 15, 20, 35, 50, 75, 100], "Hikes"),
   ...makeStaged("Navigator", [1, 2, 3, 4, 5]),
   ...makeStaged("Swimmer", [1, 2, 3, 4, 5]),
   ...makeStaged("Emergency Aid", [1, 2, 3, 4, 5]),
