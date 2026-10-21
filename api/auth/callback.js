@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
   let accessToken = token;
 
   try {
-    // 1. If incoming code from OAuth redirect, exchange for access token
+    // 1. Exchange OAuth code for Access Token if needed
     if (code && !accessToken) {
       const params = new URLSearchParams();
       params.append('grant_type', 'authorization_code');
@@ -69,14 +69,14 @@ module.exports = async (req, res) => {
       return res.status(200).send('<h3>No scout sections found for this login.</h3>');
     }
 
-    // Determine which section to display (either requested in URL or the first one)
+    // Determine which section to display (matching section_id or the first section)
     let selectedRole = (section_id ? roles.find(r => String(r.sectionid) === String(section_id)) : null) || roles[0];
 
     const currentSectionId = selectedRole.sectionid;
     const currentGroupName = selectedRole.groupname || 'Arrow District';
     const currentSectionName = selectedRole.sectionname || 'Scouts';
 
-    // 3. Build the Section Switcher HTML
+    // 3. Build Section Switcher Dropdown (Embedded at the top)
     let sectionOptions = roles.map(r => {
       const isSel = String(r.sectionid) === String(currentSectionId) ? 'selected' : '';
       return `<option value="${r.sectionid}" ${isSel}>${r.groupname} - ${r.sectionname}</option>`;
@@ -85,35 +85,40 @@ module.exports = async (req, res) => {
     const sectionSwitcherHtml = `
       <div style="background:#f3e8ff; border:1px solid #d8b4fe; padding:12px 16px; border-radius:8px; margin-bottom:1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
         <div>
-          <span style="font-size:13px; color:#581c87; font-weight:bold;">Active Section:</span>
+          <span style="font-size:13px; color:#581c87; font-weight:bold;">Current Section:</span>
           <b style="color:#3b0764; margin-left:5px;">${currentGroupName} (${currentSectionName})</b>
         </div>
         <div>
-          <label style="font-size:12px; color:#581c87; font-weight:bold; margin-right:6px;">Switch Section:</label>
-          <select onchange="window.location.href='/api/auth/callback?token=${accessToken}&section_id=' + this.value" style="padding:6px 10px; border-radius:4px; border:1px solid #c084fc; font-size:13px;">
+          <label style="font-size:12px; color:#581c87; font-weight:bold; margin-right:6px;">Select Section to Order For:</label>
+          <select onchange="window.location.href='/api/auth/callback?token=${accessToken}&section_id=' + this.value" style="padding:6px 10px; border-radius:4px; border:1px solid #c084fc; font-size:13px; font-weight:bold; background:white;">
             ${sectionOptions}
           </select>
         </div>
       </div>
     `;
 
-    // 4. Fetch Badge Stock / Due Records for this Section
+    // 4. Query Section Stock from OSM
     let availableBadges = [];
+    let rawDebug = null;
 
     try {
-      // Query OSM for badge records / due list
-      const badgeRes = await fetch(`https://www.onlinescoutmanager.co.uk/ext/badges/records/?action=getBadgesDue&sectionid=${currentSectionId}`, {
+      // First try: OSM Stock screen endpoint
+      const stockRes = await fetch(`https://www.onlinescoutmanager.co.uk/ext/badges/stock/?action=getStock&sectionid=${currentSectionId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'User-Agent': 'Arrow-District-Badge-Shop/1.0'
         }
       });
-      const badgeData = await badgeRes.json();
+      const stockData = await stockRes.json();
+      rawDebug = stockData;
 
-      if (badgeData && badgeData.items && Array.isArray(badgeData.items)) {
-        badgeData.items.forEach(item => {
-          const qty = parseInt(item.needed || item.quantity || item.due || 1, 10);
+      // OSM Stock returns items with 'needed' or 'to_order'
+      const itemsList = Array.isArray(stockData) ? stockData : (stockData.items || stockData.details || stockData.badges || []);
+
+      if (Array.isArray(itemsList) && itemsList.length > 0) {
+        itemsList.forEach(item => {
+          const qty = parseInt(item.needed || item.to_order || item.due || item.order || 0, 10);
           if (qty > 0) {
             const price = PRICE_MAP[item.stock_code] !== undefined ? PRICE_MAP[item.stock_code] : DEFAULT_BADGE_PRICE;
             availableBadges.push({
@@ -128,7 +133,7 @@ module.exports = async (req, res) => {
         });
       }
     } catch (e) {
-      console.warn('Could not pull badge records:', e);
+      console.warn('Stock query error:', e);
     }
 
     // 5. Calculate Totals
@@ -171,8 +176,12 @@ module.exports = async (req, res) => {
     } else {
       tableHtml = `
         <div style="background:#f8f9fa; padding:1.2rem; border-radius:6px; margin-bottom:1.5rem; border:1px solid #e9ecef;">
-          <p style="margin:0 0 6px;"><b>No badges currently marked as "Due / Need to Buy"</b> in section <b>${currentGroupName} (${currentSectionName})</b>.</p>
-          <p style="margin:0; font-size:13px; color:#666;">Use the <b>Switch Section</b> drop-down above if ordering for another section, or list any additional badges required in the collection notes below.</p>
+          <p style="margin:0 0 6px;"><b>No badges currently marked as "Need to Buy"</b> in section <b>${currentGroupName} (${currentSectionName})</b>.</p>
+          <p style="margin:0 0 10px; font-size:13px; color:#666;">Use the <b>Select Section to Order For</b> dropdown above if your badges are in another section.</p>
+          <details style="font-size:12px; color:#777; margin-top:10px;">
+            <summary style="cursor:pointer;">View Raw OSM Response for section ${currentSectionId}</summary>
+            <pre style="background:#fff; border:1px solid #ddd; padding:8px; border-radius:4px; max-height:200px; overflow:auto;">${JSON.stringify(rawDebug, null, 2)}</pre>
+          </details>
         </div>
       `;
     }
