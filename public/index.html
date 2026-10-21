@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Arrow District Scout Shop - Badge Order Portal</title>
   <script type="text/javascript" src="https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js"></script>
+  <!-- PDF.js for 100% free, instant in-browser PDF parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     :root {
       --primary: #4d2177;
@@ -45,6 +47,21 @@
       margin-bottom: 1.5rem;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
+    
+    /* PDF Drop Box */
+    .pdf-dropzone {
+      border: 2px dashed #a855f7;
+      background: #faf5ff;
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 1.5rem;
+      transition: all 0.2s ease;
+    }
+    .pdf-dropzone:hover { background: #f3e8ff; border-color: #9333ea; }
+    .pdf-dropzone b { color: #581c87; font-size: 15px; }
+
     .form-group { margin-bottom: 14px; }
     .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
     .form-group input, .form-group textarea, .form-group select {
@@ -59,20 +76,8 @@
     .form-row .form-group { flex: 1; min-width: 220px; }
     
     /* Badge Picker */
-    .search-bar {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-    }
-    .search-bar input {
-      flex: 1;
-      min-width: 200px;
-      padding: 10px 14px;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      font-size: 14px;
-    }
+    .search-bar { display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
+    .search-bar input { flex: 1; min-width: 200px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
     .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
     .filter-pill {
       background: #e2e8f0;
@@ -89,7 +94,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 10px;
-      max-height: 480px;
+      max-height: 440px;
       overflow-y: auto;
       padding-right: 4px;
       border: 1px solid var(--border);
@@ -125,13 +130,12 @@
     .qty-btn:hover { background: #f1f5f9; }
     .qty-num { width: 26px; text-align: center; font-weight: bold; font-size: 13px; }
 
-    /* Order Summary Table */
+    /* Summary Table */
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
     th, td { padding: 8px 12px; border: 1px solid var(--border); font-size: 13px; text-align: left; }
     th { background: #f1f5f9; }
     .text-right { text-align: right; }
     
-    /* Buttons */
     .btn {
       background: var(--accent);
       color: white;
@@ -158,7 +162,7 @@
     .invoice-card { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; }
     .invoice-card.bacs { background: #eff6ff; border-color: #bfdbfe; }
     @media print {
-      .btn-print, #headerLogo { display: none !important; }
+      .btn-print { display: none !important; }
       body { margin: 0; padding: 0; max-width: 100%; background: white; }
       .card, .header { box-shadow: none; border: 1px solid #ddd; }
     }
@@ -170,6 +174,15 @@
     <div class="header">
       <h1>Arrow District Scout Shop</h1>
       <p>District Badge Ordering Portal | All Badges £0.90 each</p>
+    </div>
+
+    <!-- 1-Click OSM PDF Upload Option -->
+    <div class="pdf-dropzone" onclick="document.getElementById('pdfInput').click()">
+      <input type="file" id="pdfInput" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)">
+      <b>📄 Instant Order: Drop your OSM "Badge Shopping List.pdf" here</b>
+      <p style="margin:5px 0 0; font-size:13px; color:#6b21a8;">
+        Click to select or drag and drop your downloaded shopping list. It will auto-fill your Group, Section, and all needed badges!
+      </p>
     </div>
 
     <!-- Leader & Group Details -->
@@ -236,16 +249,16 @@
 
       <div class="form-group">
         <label>Collection Notes / Pigeon Hole Instructions:</label>
-        <textarea id="leaderNotes" rows="2" placeholder="e.g. Will collect Thursday evening, or please place in our group pigeon hole."></textarea>
+        <textarea id="leaderNotes" rows="2" placeholder="e.g. Will collect Thursday evening from Allbrook Hill, or please place in our group pigeon hole."></textarea>
       </div>
     </div>
 
     <!-- Badge Selector -->
     <div class="card">
-      <h3 style="margin-top:0;">2. Select Badges</h3>
+      <h3 style="margin-top:0;">2. Badges in this Order</h3>
 
       <div class="search-bar">
-        <input type="text" id="badgeSearch" placeholder="🔍 Search badges (e.g. Navigator, Nights Away, Chief Scout)..." oninput="renderBadges()">
+        <input type="text" id="badgeSearch" placeholder="🔍 Search catalogue (e.g. Outdoors, Nights Away, Chief Scout)..." oninput="renderBadges()">
       </div>
 
       <div class="filter-pills">
@@ -261,7 +274,7 @@
       <div class="badge-grid" id="badgeGrid"></div>
 
       <div class="form-group" style="margin-top:1.2rem;">
-        <label>Additional / Occasional Badges (or Special Instructions):</label>
+        <label>Additional / Occasional Badges (or Notes):</label>
         <textarea id="extraBadges" rows="2" placeholder="e.g. 1x Occasional St George badge, or specific badges not listed above."></textarea>
       </div>
     </div>
@@ -270,7 +283,7 @@
     <div class="card">
       <h3 style="margin-top:0;">3. Order Summary & Payment</h3>
       <div id="selectedTableContainer">
-        <p style="color:var(--text-muted); font-size:14px;">No badges selected yet. Use the <b>+</b> buttons above to add badges.</p>
+        <p style="color:var(--text-muted); font-size:14px;">No badges selected yet. Drop an OSM PDF above or use the <b>+</b> buttons.</p>
       </div>
 
       <div id="payment-buttons" style="margin-top:1.5rem; display:none;">
@@ -308,6 +321,8 @@
   </div>
 
   <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
     const BADGE_PRICE = 0.90;
     const WEB3FORMS_KEY = "454aaffb-de18-4c39-a511-398c15397a9b";
     const DISTRICT_BANK = {
@@ -317,7 +332,6 @@
       bankName: "Lloyds Bank"
     };
 
-    // Helper to generate staged badges with all official levels
     function makeStaged(name, levels) {
       return levels.map(lvl => ({
         id: "st_" + name.toLowerCase().replace(/[^a-z0-9]/g, "_") + "_lvl" + lvl,
@@ -326,30 +340,19 @@
       }));
     }
 
-    // Complete UK Scout Catalogue with all Staged badge levels
     const CATALOGUE = [
-      // Core & Awards
-      { id: "cs_gold", name: "Chief Scout's Gold Award", cat: "awards" },
-      { id: "cs_silver", name: "Chief Scout's Silver Award", cat: "awards" },
-      { id: "cs_bronze", name: "Chief Scout's Bronze Award", cat: "awards" },
-      { id: "cs_acorn", name: "Chief Scout's Acorn Award", cat: "awards" },
-      { id: "membership", name: "World Membership Badge", cat: "awards" },
-      { id: "moving_on", name: "Moving On Award", cat: "awards" },
+      { id: "cs_gold", name: "Chief Scout's Gold", cat: "awards" },
+      { id: "cs_silver", name: "Chief Scout's Silver", cat: "awards" },
+      { id: "cs_bronze", name: "Chief Scout's Bronze", cat: "awards" },
+      { id: "cs_acorn", name: "Chief Scout's Acorn", cat: "awards" },
+      { id: "membership", name: "Membership", cat: "awards" },
+      { id: "moving_on", name: "Moving On", cat: "awards" },
       { id: "union_flag", name: "Union Flag", cat: "awards" },
-      { id: "joining_in_1", name: "Joining In Award - Level 1", cat: "awards" },
-      { id: "joining_in_2", name: "Joining In Award - Level 2", cat: "awards" },
-      { id: "joining_in_3", name: "Joining In Award - Level 3", cat: "awards" },
-      { id: "joining_in_4", name: "Joining In Award - Level 4", cat: "awards" },
-      { id: "joining_in_5", name: "Joining In Award - Level 5", cat: "awards" },
-      { id: "joining_in_6", name: "Joining In Award - Level 6", cat: "awards" },
-      { id: "joining_in_7", name: "Joining In Award - Level 7", cat: "awards" },
-      { id: "joining_in_8", name: "Joining In Award - Level 8", cat: "awards" },
-      { id: "joining_in_9", name: "Joining In Award - Level 9", cat: "awards" },
+      ...makeStaged("Joining In", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
       { id: "youshape", name: "YouShape Award (Central)", cat: "awards" },
-      { id: "hampshire_id", name: "Hampshire (County Identity)", cat: "awards" },
-      { id: "district_id", name: "Arrow District (Identity)", cat: "awards" },
+      { id: "hampshire_id", name: "Hampshire (Identity)", cat: "awards" },
+      { id: "district_id", name: "Eastleigh District (Identity)", cat: "awards" },
 
-      // Staged Badges with distinct levels
       ...makeStaged("Nights Away", [1, 2, 3, 4, 5, 10, 15, 20, 35, 50, 75, 100, 125, 150, 175, 200]),
       ...makeStaged("Hikes Away", [1, 2, 5, 10, 15, 20, 35, 50]),
       ...makeStaged("Navigator", [1, 2, 3, 4, 5]),
@@ -366,40 +369,37 @@
       ...makeStaged("Community Impact", [1, 2, 3, 4]),
       ...makeStaged("Snowsports", [1, 2, 3, 4]),
 
-      // Scouts Challenge & Activity
-      { id: "sc_adventure", name: "Scouts - Adventure Challenge", cat: "scouts" },
-      { id: "sc_creative", name: "Scouts - Creative Challenge", cat: "scouts" },
-      { id: "sc_expedition", name: "Scouts - Expedition Challenge", cat: "scouts" },
-      { id: "sc_outdoors", name: "Scouts - Outdoors Challenge", cat: "scouts" },
-      { id: "sc_personal", name: "Scouts - Personal Challenge", cat: "scouts" },
-      { id: "sc_skills", name: "Scouts - Skills Challenge", cat: "scouts" },
-      { id: "sc_team_leader", name: "Scouts - Team Leader Challenge", cat: "scouts" },
-      { id: "sc_teamwork", name: "Scouts - Teamwork Challenge", cat: "scouts" },
-      { id: "sc_world", name: "Scouts - World Challenge", cat: "scouts" },
-      { id: "sc_athletics", name: "Scouts - Athletics Activity", cat: "scouts" },
-      { id: "sc_camper", name: "Scouts - Camper Activity", cat: "scouts" },
-      { id: "sc_chef", name: "Scouts - Chef Activity", cat: "scouts" },
-      { id: "sc_communicator", name: "Scouts - Communicator Activity", cat: "scouts" },
-      { id: "sc_cyclist", name: "Scouts - Cyclist Activity", cat: "scouts" },
-      { id: "sc_diy", name: "Scouts - DIY Activity", cat: "scouts" },
-      { id: "sc_fire_safety", name: "Scouts - Fire Safety", cat: "scouts" },
-      { id: "sc_forester", name: "Scouts - Forester", cat: "scouts" },
-      { id: "sc_geocaching", name: "Scouts - Geocaching", cat: "scouts" },
-      { id: "sc_naturalist", name: "Scouts - Naturalist", cat: "scouts" },
-      { id: "sc_pioneer", name: "Scouts - Pioneer", cat: "scouts" },
-      { id: "sc_survival", name: "Scouts - Survival Skills", cat: "scouts" },
-      { id: "sc_pl_stripes", name: "Patrol Leader Stripes (2 red)", cat: "scouts" },
-      { id: "sc_apl_stripes", name: "Assistant Patrol Leader Stripes (1 red)", cat: "scouts" },
-      { id: "sc_spl_stripes", name: "Senior Patrol Leader Stripes (3 red)", cat: "scouts" },
+      { id: "sc_adventure", name: "Adventure", cat: "scouts" },
+      { id: "sc_creative", name: "Creative", cat: "scouts" },
+      { id: "sc_expedition", name: "Expedition", cat: "scouts" },
+      { id: "sc_outdoors", name: "Outdoors", cat: "scouts" },
+      { id: "sc_personal", name: "Personal", cat: "scouts" },
+      { id: "sc_skills", name: "Skills", cat: "scouts" },
+      { id: "sc_team_leader", name: "Team Leader", cat: "scouts" },
+      { id: "sc_teamwork", name: "Teamwork", cat: "scouts" },
+      { id: "sc_world", name: "World", cat: "scouts" },
+      { id: "sc_athletics", name: "Athletics", cat: "scouts" },
+      { id: "sc_camper", name: "Camper", cat: "scouts" },
+      { id: "sc_chef", name: "Chef", cat: "scouts" },
+      { id: "sc_communicator", name: "Communicator", cat: "scouts" },
+      { id: "sc_cyclist", name: "Cyclist", cat: "scouts" },
+      { id: "sc_diy", name: "DIY", cat: "scouts" },
+      { id: "sc_fire_safety", name: "Fire Safety", cat: "scouts" },
+      { id: "sc_forester", name: "Forester", cat: "scouts" },
+      { id: "sc_naturalist", name: "Naturalist", cat: "scouts" },
+      { id: "sc_pioneer", name: "Pioneer", cat: "scouts" },
+      { id: "sc_survival", name: "Survival Skills", cat: "scouts" },
+      { id: "sc_pl_stripes", name: "Patrol Leader (Stripes)", cat: "scouts" },
+      { id: "sc_apl_stripes", name: "Assistant Patrol Leader (Stripes)", cat: "scouts" },
+      { id: "sc_spl_stripes", name: "Senior Patrol Leader (Stripes)", cat: "scouts" },
 
-      // Cubs Challenge & Activity
-      { id: "cub_adventure", name: "Cubs - Our Adventure Challenge", cat: "cubs" },
-      { id: "cub_outdoors", name: "Cubs - Our Outdoors Challenge", cat: "cubs" },
-      { id: "cub_skills", name: "Cubs - Our Skills Challenge", cat: "cubs" },
-      { id: "cub_world", name: "Cubs - Our World Challenge", cat: "cubs" },
-      { id: "cub_teamwork", name: "Cubs - Teamwork Challenge", cat: "cubs" },
-      { id: "cub_team_leader", name: "Cubs - Team Leader Challenge", cat: "cubs" },
-      { id: "cub_personal", name: "Cubs - Personal Challenge", cat: "cubs" },
+      { id: "cub_adventure", name: "Cubs - Our Adventure", cat: "cubs" },
+      { id: "cub_outdoors", name: "Cubs - Our Outdoors", cat: "cubs" },
+      { id: "cub_skills", name: "Cubs - Our Skills", cat: "cubs" },
+      { id: "cub_world", name: "Cubs - Our World", cat: "cubs" },
+      { id: "cub_teamwork", name: "Cubs - Teamwork", cat: "cubs" },
+      { id: "cub_team_leader", name: "Cubs - Team Leader", cat: "cubs" },
+      { id: "cub_personal", name: "Cubs - Personal", cat: "cubs" },
       { id: "cub_book_reader", name: "Cubs - Book Reader", cat: "cubs" },
       { id: "cub_chef", name: "Cubs - Chef", cat: "cubs" },
       { id: "cub_communicator", name: "Cubs - Communicator", cat: "cubs" },
@@ -413,13 +413,12 @@
       { id: "cub_sixer_stripes", name: "Sixer Stripes (2 yellow)", cat: "cubs" },
       { id: "cub_seconder_stripes", name: "Seconder Stripes (1 yellow)", cat: "cubs" },
 
-      // Beavers Challenge & Activity
-      { id: "bv_adventure", name: "Beavers - My Adventure Challenge", cat: "beavers" },
-      { id: "bv_outdoors", name: "Beavers - My Outdoors Challenge", cat: "beavers" },
-      { id: "bv_skills", name: "Beavers - My Skills Challenge", cat: "beavers" },
-      { id: "bv_world", name: "Beavers - My World Challenge", cat: "beavers" },
-      { id: "bv_personal", name: "Beavers - Personal Challenge", cat: "beavers" },
-      { id: "bv_teamwork", name: "Beavers - Teamwork Challenge", cat: "beavers" },
+      { id: "bv_adventure", name: "Beavers - My Adventure", cat: "beavers" },
+      { id: "bv_outdoors", name: "Beavers - My Outdoors", cat: "beavers" },
+      { id: "bv_skills", name: "Beavers - My Skills", cat: "beavers" },
+      { id: "bv_world", name: "Beavers - My World", cat: "beavers" },
+      { id: "bv_personal", name: "Beavers - Personal", cat: "beavers" },
+      { id: "bv_teamwork", name: "Beavers - Teamwork", cat: "beavers" },
       { id: "bv_book_reader", name: "Beavers - Book Reader", cat: "beavers" },
       { id: "bv_campcraft", name: "Beavers - Campcraft", cat: "beavers" },
       { id: "bv_collector", name: "Beavers - Collector", cat: "beavers" },
@@ -429,7 +428,6 @@
       { id: "bv_experiment", name: "Beavers - Experiment", cat: "beavers" },
       { id: "bv_explore", name: "Beavers - Explore", cat: "beavers" },
 
-      // Squirrels
       { id: "sq_all_about_me", name: "Squirrels - All About Me", cat: "squirrels" },
       { id: "sq_all_around_us", name: "Squirrels - All Around Us", cat: "squirrels" },
       { id: "sq_all_together", name: "Squirrels - All Together", cat: "squirrels" },
@@ -443,6 +441,87 @@
     let currentFilter = "all";
     let orderQuantities = {};
     let orderRef = "ARROW-" + Date.now().toString().slice(-6);
+
+    // --- INSTANT OSM PDF PARSER ---
+    async function handlePdfUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const typedarray = new Uint8Array(this.result);
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        let fullText = "";
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map(item => item.str);
+          fullText += strings.join("\n") + "\n";
+        }
+
+        parseOsmPdfText(fullText);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function parseOsmPdfText(text) {
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+      let matchCount = 0;
+
+      // Detect Group and Section from top header (e.g. "4th Eastleigh: Scouts")
+      for (let i = 0; i < Math.min(lines.length, 5); i++) {
+        const line = lines[i];
+        if (line.includes(":")) {
+          const parts = line.split(":");
+          const grpName = parts[0].trim();
+          const secName = parts[1].trim();
+
+          const gSelect = document.getElementById("leaderGroup");
+          for (let opt of gSelect.options) {
+            if (opt.value && opt.value.toLowerCase().includes(grpName.toLowerCase())) {
+              gSelect.value = opt.value;
+              break;
+            }
+          }
+
+          const sSelect = document.getElementById("leaderSection");
+          for (let opt of sSelect.options) {
+            if (opt.value && opt.value.toLowerCase() === secName.toLowerCase()) {
+              sSelect.value = opt.value;
+              break;
+            }
+          }
+        }
+      }
+
+      // Parse Badge Rows (e.g. BadgeName followed by Required count)
+      for (let i = 0; i < lines.length - 1; i++) {
+        const line = lines[i];
+        const nextLine = lines[i + 1];
+        const qty = parseInt(nextLine, 10);
+
+        if (!isNaN(qty) && qty > 0 && isNaN(parseInt(line, 10))) {
+          // Normalise name (e.g. "Nights Away Lvl 20" -> "Nights Away - Level 20")
+          const cleanName = line.replace(/\bLvl\s*(\d+)/i, "Level $1").toLowerCase();
+          
+          const match = CATALOGUE.find(b => {
+            const bName = b.name.toLowerCase();
+            return bName === cleanName || bName.includes(cleanName) || cleanName.includes(bName);
+          });
+
+          if (match) {
+            orderQuantities[match.id] = qty;
+            matchCount++;
+            i++; // skip count line
+          }
+        }
+      }
+
+      renderBadges();
+      renderSummary();
+      alert(`✅ Loaded ${matchCount} badge requirement(s) directly from your OSM Shopping List!`);
+    }
 
     function setFilter(cat, elem) {
       currentFilter = cat;
@@ -521,7 +600,7 @@
       const cardBtn = document.getElementById("cardBtn");
 
       if (items.length === 0) {
-        container.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">No badges selected yet. Use the <b>+</b> buttons above to add badges.</p>';
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">No badges selected yet. Drop an OSM PDF above or use the <b>+</b> buttons.</p>';
         payButtons.style.display = "none";
         return;
       }
@@ -588,7 +667,7 @@
     async function sendEmailNotification(paymentType, leaderInfo, items, grandTotal) {
       let pickingList = items.map(i => `${i.quantity}x ${i.name} = £${i.lineTotal}`).join("\n");
       if (leaderInfo.extraBadges) {
-        pickingList += `\n\nEXTRA / UNLISTED BADGES REQUESTED:\n${leaderInfo.extraBadges}`;
+        pickingList += `\n\nEXTRA / OCCASIONAL BADGES:\n${leaderInfo.extraBadges}`;
       }
 
       const bacsDetails = (paymentType.indexOf("BACS") !== -1)
@@ -742,7 +821,6 @@
       showThankYouScreen("AWAITING BACS PAYMENT", leader, items, grandTotal);
     }
 
-    // Initialize catalogue on page load
     window.addEventListener("DOMContentLoaded", renderBadges);
   </script>
 </body>
