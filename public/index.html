@@ -87,9 +87,9 @@
     .filter-pill.active { background: var(--primary); color: white; }
     .badge-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 10px;
-      max-height: 420px;
+      max-height: 480px;
       overflow-y: auto;
       padding-right: 4px;
       border: 1px solid var(--border);
@@ -245,7 +245,7 @@
       <h3 style="margin-top:0;">2. Select Badges</h3>
 
       <div class="search-bar">
-        <input type="text" id="badgeSearch" placeholder="🔍 Search badges by name (e.g. Outdoors, Nights Away, Chief Scout)..." oninput="renderBadges()">
+        <input type="text" id="badgeSearch" placeholder="🔍 Search badges (e.g. Navigator, Nights Away, Chief Scout)..." oninput="renderBadges()">
       </div>
 
       <div class="filter-pills">
@@ -261,8 +261,8 @@
       <div class="badge-grid" id="badgeGrid"></div>
 
       <div class="form-group" style="margin-top:1.2rem;">
-        <label>Additional / Unlisted Badges (or Specific Staged Levels):</label>
-        <textarea id="extraBadges" rows="2" placeholder="e.g. 2x Swimmer Level 3, 1x Occasional St George badge"></textarea>
+        <label>Additional / Occasional Badges (or Special Instructions):</label>
+        <textarea id="extraBadges" rows="2" placeholder="e.g. 1x Occasional St George badge, or specific badges not listed above."></textarea>
       </div>
     </div>
 
@@ -317,9 +317,18 @@
       bankName: "Lloyds Bank"
     };
 
-    // Pre-loaded catalogue of core UK Scout badges
+    // Helper to generate staged badges with all official levels
+    function makeStaged(name, levels) {
+      return levels.map(lvl => ({
+        id: "st_" + name.toLowerCase().replace(/[^a-z0-9]/g, "_") + "_lvl" + lvl,
+        name: name + " - Level " + lvl,
+        cat: "staged"
+      }));
+    }
+
+    // Complete UK Scout Catalogue with all Staged badge levels
     const CATALOGUE = [
-      // Core & Challenge Awards
+      // Core & Awards
       { id: "cs_gold", name: "Chief Scout's Gold Award", cat: "awards" },
       { id: "cs_silver", name: "Chief Scout's Silver Award", cat: "awards" },
       { id: "cs_bronze", name: "Chief Scout's Bronze Award", cat: "awards" },
@@ -327,10 +336,37 @@
       { id: "membership", name: "World Membership Badge", cat: "awards" },
       { id: "moving_on", name: "Moving On Award", cat: "awards" },
       { id: "union_flag", name: "Union Flag", cat: "awards" },
-      { id: "joining_in", name: "Joining In Award", cat: "awards" },
+      { id: "joining_in_1", name: "Joining In Award - Level 1", cat: "awards" },
+      { id: "joining_in_2", name: "Joining In Award - Level 2", cat: "awards" },
+      { id: "joining_in_3", name: "Joining In Award - Level 3", cat: "awards" },
+      { id: "joining_in_4", name: "Joining In Award - Level 4", cat: "awards" },
+      { id: "joining_in_5", name: "Joining In Award - Level 5", cat: "awards" },
+      { id: "joining_in_6", name: "Joining In Award - Level 6", cat: "awards" },
+      { id: "joining_in_7", name: "Joining In Award - Level 7", cat: "awards" },
+      { id: "joining_in_8", name: "Joining In Award - Level 8", cat: "awards" },
+      { id: "joining_in_9", name: "Joining In Award - Level 9", cat: "awards" },
       { id: "youshape", name: "YouShape Award (Central)", cat: "awards" },
+      { id: "hampshire_id", name: "Hampshire (County Identity)", cat: "awards" },
+      { id: "district_id", name: "Arrow District (Identity)", cat: "awards" },
 
-      // Scout Challenge Awards
+      // Staged Badges with distinct levels
+      ...makeStaged("Nights Away", [1, 2, 3, 4, 5, 10, 15, 20, 35, 50, 75, 100, 125, 150, 175, 200]),
+      ...makeStaged("Hikes Away", [1, 2, 5, 10, 15, 20, 35, 50]),
+      ...makeStaged("Navigator", [1, 2, 3, 4, 5]),
+      ...makeStaged("Swimmer", [1, 2, 3, 4, 5]),
+      ...makeStaged("Emergency Aid", [1, 2, 3, 4, 5]),
+      ...makeStaged("Time on the Water", [1, 2, 5, 10, 15, 20, 35, 50]),
+      ...makeStaged("Paddle Sports", [1, 2, 3, 4]),
+      ...makeStaged("Sailing", [1, 2, 3, 4]),
+      ...makeStaged("Musician", [1, 2, 3, 4, 5]),
+      ...makeStaged("Nautical Skills", [1, 2, 3, 4, 5, 6]),
+      ...makeStaged("Air Activities", [1, 2, 3, 4, 5, 6]),
+      ...makeStaged("Digital Citizen", [1, 2, 3, 4]),
+      ...makeStaged("Digital Maker", [1, 2, 3, 4, 5]),
+      ...makeStaged("Community Impact", [1, 2, 3, 4]),
+      ...makeStaged("Snowsports", [1, 2, 3, 4]),
+
+      // Scouts Challenge & Activity
       { id: "sc_adventure", name: "Scouts - Adventure Challenge", cat: "scouts" },
       { id: "sc_creative", name: "Scouts - Creative Challenge", cat: "scouts" },
       { id: "sc_expedition", name: "Scouts - Expedition Challenge", cat: "scouts" },
@@ -348,11 +384,15 @@
       { id: "sc_diy", name: "Scouts - DIY Activity", cat: "scouts" },
       { id: "sc_fire_safety", name: "Scouts - Fire Safety", cat: "scouts" },
       { id: "sc_forester", name: "Scouts - Forester", cat: "scouts" },
+      { id: "sc_geocaching", name: "Scouts - Geocaching", cat: "scouts" },
       { id: "sc_naturalist", name: "Scouts - Naturalist", cat: "scouts" },
       { id: "sc_pioneer", name: "Scouts - Pioneer", cat: "scouts" },
       { id: "sc_survival", name: "Scouts - Survival Skills", cat: "scouts" },
+      { id: "sc_pl_stripes", name: "Patrol Leader Stripes (2 red)", cat: "scouts" },
+      { id: "sc_apl_stripes", name: "Assistant Patrol Leader Stripes (1 red)", cat: "scouts" },
+      { id: "sc_spl_stripes", name: "Senior Patrol Leader Stripes (3 red)", cat: "scouts" },
 
-      // Cub Challenge Awards
+      // Cubs Challenge & Activity
       { id: "cub_adventure", name: "Cubs - Our Adventure Challenge", cat: "cubs" },
       { id: "cub_outdoors", name: "Cubs - Our Outdoors Challenge", cat: "cubs" },
       { id: "cub_skills", name: "Cubs - Our Skills Challenge", cat: "cubs" },
@@ -370,8 +410,10 @@
       { id: "cub_martial_arts", name: "Cubs - Martial Arts", cat: "cubs" },
       { id: "cub_naturalist", name: "Cubs - Naturalist", cat: "cubs" },
       { id: "cub_scientist", name: "Cubs - Scientist", cat: "cubs" },
+      { id: "cub_sixer_stripes", name: "Sixer Stripes (2 yellow)", cat: "cubs" },
+      { id: "cub_seconder_stripes", name: "Seconder Stripes (1 yellow)", cat: "cubs" },
 
-      // Beaver Challenge Awards
+      // Beavers Challenge & Activity
       { id: "bv_adventure", name: "Beavers - My Adventure Challenge", cat: "beavers" },
       { id: "bv_outdoors", name: "Beavers - My Outdoors Challenge", cat: "beavers" },
       { id: "bv_skills", name: "Beavers - My Skills Challenge", cat: "beavers" },
@@ -395,21 +437,7 @@
       { id: "sq_brilliant_builder", name: "Squirrels - Brilliant Builder", cat: "squirrels" },
       { id: "sq_exciting_explorer", name: "Squirrels - Exciting Explorer", cat: "squirrels" },
       { id: "sq_go_wild", name: "Squirrels - Go Wild", cat: "squirrels" },
-      { id: "sq_super_chef", name: "Squirrels - Super Chef", cat: "squirrels" },
-
-      // Staged Activity Badges
-      { id: "st_nights_away", name: "Staged - Nights Away (specify lvl)", cat: "staged" },
-      { id: "st_hikes", name: "Staged - Hikes Away (specify lvl)", cat: "staged" },
-      { id: "st_swimmer", name: "Staged - Swimmer (specify lvl)", cat: "staged" },
-      { id: "st_emergency_aid", name: "Staged - Emergency Aid (specify lvl)", cat: "staged" },
-      { id: "st_navigator", name: "Staged - Navigator (specify lvl)", cat: "staged" },
-      { id: "st_time_on_water", name: "Staged - Time on the Water (specify lvl)", cat: "staged" },
-      { id: "st_paddle_sports", name: "Staged - Paddle Sports (specify lvl)", cat: "staged" },
-      { id: "st_sailing", name: "Staged - Sailing (specify lvl)", cat: "staged" },
-      { id: "st_musician", name: "Staged - Musician (specify lvl)", cat: "staged" },
-      { id: "st_digital_citizen", name: "Staged - Digital Citizen (specify lvl)", cat: "staged" },
-      { id: "st_digital_maker", name: "Staged - Digital Maker (specify lvl)", cat: "staged" },
-      { id: "st_community_impact", name: "Staged - Community Impact (specify lvl)", cat: "staged" }
+      { id: "sq_super_chef", name: "Squirrels - Super Chef", cat: "squirrels" }
     ];
 
     let currentFilter = "all";
