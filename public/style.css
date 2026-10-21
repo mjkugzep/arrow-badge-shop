@@ -1,0 +1,176 @@
+:root {
+  --primary: #4d2177;
+  --primary-hover: #3b175e;
+  --accent: #008751;
+  --accent-hover: #006e41;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-muted: #64748b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.header {
+  background: var(--primary);
+  color: white;
+  padding: 1.75rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.header h1 { margin: 0 0 6px; font-size: 26px; }
+.header p { margin: 0; opacity: 0.9; font-size: 14px; }
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.pdf-dropzone {
+  border: 2px dashed #a855f7;
+  background: #faf5ff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.pdf-dropzone:hover {
+  background: #f3e8ff;
+  border-color: #9333ea;
+}
+
+.pdf-dropzone b {
+  color: #581c87;
+  font-size: 15px;
+}
+
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.form-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.form-row .form-group { flex: 1; min-width: 220px; }
+
+.search-bar { display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
+.search-bar input { flex: 1; min-width: 200px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+
+.filter-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
+.filter-pill {
+  background: #e2e8f0;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+}
+.filter-pill.active { background: var(--primary); color: white; }
+
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  max-height: 440px;
+  overflow-y: auto;
+  padding-right: 4px;
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.badge-item {
+  background: white;
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.badge-item .info { flex: 1; padding-right: 8px; }
+.badge-item .info b { font-size: 13px; display: block; }
+.badge-item .info span { font-size: 11px; color: var(--text-muted); }
+
+.qty-controls { display: flex; align-items: center; gap: 6px; }
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qty-btn:hover { background: #f1f5f9; }
+.qty-num { width: 26px; text-align: center; font-weight: bold; font-size: 13px; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th, td { padding: 8px 12px; border: 1px solid var(--border); font-size: 13px; text-align: left; }
+th { background: #f1f5f9; }
+.text-right { text-align: right; }
+
+.btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 12px 22px;
+  font-size: 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn:hover { background: var(--accent-hover); }
+.btn-bacs { background: var(--primary); margin-left: 10px; }
+.btn-bacs:hover { background: var(--primary-hover); }
+.btn-print {
+  background: var(--primary);
+  color: white;
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.invoice-card { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; }
+.invoice-card.bacs { background: #eff6ff; border-color: #bfdbfe; }
+
+@media print {
+  .btn-print, .pdf-dropzone, .search-bar, .filter-pills, .badge-grid { display: none !important; }
+  body { margin: 0; padding: 0; max-width: 100%; background: white; }
+  .card, .header { box-shadow: none; border: 1px solid #ddd; }
+}
