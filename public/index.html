@@ -24,18 +24,48 @@
       <p>District Badge Ordering Portal | All Badges £0.90 each</p>
     </div>
 
-    <!-- 1-Click OSM PDF Upload Option -->
+    <!-- 1. Upload PDF -->
     <div class="pdf-dropzone" onclick="document.getElementById('pdfInput').click()">
       <input type="file" id="pdfInput" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)">
-      <b>📄 Instant Order: Drop your OSM "Badge Shopping List.pdf" here</b>
+      <b>📄 1. Instant Order: Drop your OSM "Badge Shopping List.pdf" here</b>
       <p style="margin:5px 0 0; font-size:13px; color:#6b21a8;">
         Click to select or drag and drop your downloaded shopping list. It will auto-fill your Group, Section, and all needed badges!
       </p>
     </div>
 
-    <!-- 1. Leader Details -->
+    <!-- 2. Manually Select Badges -->
     <div class="card">
-      <h3 style="margin-top:0;">1. Leader & Delivery Information</h3>
+      <h3 style="margin-top:0;">2. Manually Select Badges</h3>
+
+      <div class="search-bar">
+        <input type="text" id="badgeSearch" placeholder="🔍 Search catalogue (e.g. Outdoors, Nights Away, Chief Scout)..." oninput="renderBadges()">
+      </div>
+
+      <div class="filter-pills">
+        <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
+        <button class="filter-pill" onclick="setFilter('staged', this)">Staged Badges</button>
+        <button class="filter-pill" onclick="setFilter('scouts', this)">Scouts</button>
+        <button class="filter-pill" onclick="setFilter('cubs', this)">Cubs</button>
+        <button class="filter-pill" onclick="setFilter('beavers', this)">Beavers</button>
+        <button class="filter-pill" onclick="setFilter('squirrels', this)">Squirrels</button>
+        <button class="filter-pill" onclick="setFilter('awards', this)">Core & Awards</button>
+      </div>
+
+      <div class="badge-grid" id="badgeGrid"></div>
+
+      <div class="form-group" style="margin-top:1.2rem;">
+        <label>Additional / Occasional Badges (or Notes):</label>
+        <textarea id="extraBadges" rows="3" placeholder="e.g. 1x Occasional St George badge, or specific badges not listed above."></textarea>
+      </div>
+    </div>
+
+    <!-- 3. Leader and Collection Information -->
+    <div class="card" id="leaderDetailsCard">
+      <h3 style="margin-top:0;">3. Leader & Collection Information</h3>
+      <p style="font-size:13px; color:#64748b; margin-top:-4px; margin-bottom:14px;">
+        ℹ️ <b>Collection Only:</b> Delivery is not available. Badges must be collected from the District Badge Secretary (or your Group pigeon hole).
+      </p>
+
       <div class="form-row">
         <div class="form-group">
           <label>Leader Name:</label>
@@ -96,40 +126,14 @@
       </div>
 
       <div class="form-group">
-        <label>Collection Notes / Pigeon Hole Instructions:</label>
-        <textarea id="leaderNotes" rows="2" placeholder="e.g. Will collect Thursday evening from Allbrook Hill, or please place in our group pigeon hole."></textarea>
+        <label>Collection Arrangements & Urgency:</label>
+        <textarea id="leaderNotes" rows="2" placeholder="e.g. Needed for Investiture on Thursday evening if possible; otherwise will collect at next District meeting."></textarea>
       </div>
     </div>
 
-    <!-- 2. Badge Catalogue & Selection -->
-    <div class="card">
-      <h3 style="margin-top:0;">2. Badges in this Order</h3>
-
-      <div class="search-bar">
-        <input type="text" id="badgeSearch" placeholder="🔍 Search catalogue (e.g. Outdoors, Nights Away, Chief Scout)..." oninput="renderBadges()">
-      </div>
-
-      <div class="filter-pills">
-        <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
-        <button class="filter-pill" onclick="setFilter('staged', this)">Staged Badges</button>
-        <button class="filter-pill" onclick="setFilter('scouts', this)">Scouts</button>
-        <button class="filter-pill" onclick="setFilter('cubs', this)">Cubs</button>
-        <button class="filter-pill" onclick="setFilter('beavers', this)">Beavers</button>
-        <button class="filter-pill" onclick="setFilter('squirrels', this)">Squirrels</button>
-        <button class="filter-pill" onclick="setFilter('awards', this)">Core & Awards</button>
-      </div>
-
-      <div class="badge-grid" id="badgeGrid"></div>
-
-      <div class="form-group" style="margin-top:1.2rem;">
-        <label>Additional / Occasional Badges (or Notes):</label>
-        <textarea id="extraBadges" rows="3" placeholder="e.g. 1x Occasional St George badge, or specific badges not listed above."></textarea>
-      </div>
-    </div>
-
-    <!-- 3. Summary & Payment -->
-    <div class="card">
-      <h3 style="margin-top:0;">3. Order Summary & Payment</h3>
+    <!-- 4. Order Summary and Payment -->
+    <div class="card" id="summaryCard">
+      <h3 style="margin-top:0;">4. Order Summary & Payment</h3>
       <div id="selectedTableContainer">
         <p style="color:var(--text-muted); font-size:14px;">No badges selected yet. Drop an OSM PDF above or use the <b>+</b> buttons.</p>
       </div>
@@ -162,7 +166,7 @@
     <div style="background:#f8f9fa; padding:1.25rem; border-radius:6px; margin:1.5rem 0; font-size:14px; border:1px solid #e2e8f0;">
       <b>Leader / Group:</b> <span id="tyLeader"></span><br>
       <b>Contact Email:</b> <span id="tyEmail"></span><br>
-      <b>Collection / Delivery Notes:</b> <span id="tyNotes"></span>
+      <b>Collection / Urgency Notes:</b> <span id="tyNotes"></span>
     </div>
 
     <button class="btn-print" onclick="window.print()">🖨️ Print / Save Receipt as PDF</button>
