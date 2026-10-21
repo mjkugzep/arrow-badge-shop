@@ -1,0 +1,113 @@
+// Helper to create staged badges with all official level tiers
+function makeStaged(name, levels) {
+  return levels.map(lvl => ({
+    id: "st_" + name.toLowerCase().replace(/[^a-z0-9]/g, "_") + "_lvl" + lvl,
+    name: name + " - Level " + lvl,
+    cat: "staged"
+  }));
+}
+
+const CATALOGUE = [
+  // Core & Awards
+  { id: "cs_gold", name: "Chief Scout's Gold", cat: "awards" },
+  { id: "cs_silver", name: "Chief Scout's Silver", cat: "awards" },
+  { id: "cs_bronze", name: "Chief Scout's Bronze", cat: "awards" },
+  { id: "cs_acorn", name: "Chief Scout's Acorn", cat: "awards" },
+  { id: "membership", name: "Membership", cat: "awards" },
+  { id: "moving_on", name: "Moving On", cat: "awards" },
+  { id: "union_flag", name: "Union Flag", cat: "awards" },
+  ...makeStaged("Joining In", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
+  { id: "youshape", name: "YouShape Award (Central)", cat: "awards" },
+  { id: "hampshire_id", name: "Hampshire (Identity)", cat: "awards" },
+  { id: "district_id", name: "Eastleigh District (Identity)", cat: "awards" },
+
+  // Staged Activity Badges
+  ...makeStaged("Nights Away", [1, 2, 3, 4, 5, 10, 15, 20, 35, 50, 75, 100, 125, 150, 175, 200]),
+  ...makeStaged("Hikes Away", [1, 2, 5, 10, 15, 20, 35, 50, 75, 100]),
+  ...makeStaged("Navigator", [1, 2, 3, 4, 5]),
+  ...makeStaged("Swimmer", [1, 2, 3, 4, 5]),
+  ...makeStaged("Emergency Aid", [1, 2, 3, 4, 5]),
+  ...makeStaged("Time on the Water", [1, 2, 5, 10, 15, 20, 35, 50, 75, 100]),
+  ...makeStaged("Paddle Sports", [1, 2, 3, 4]),
+  ...makeStaged("Sailing", [1, 2, 3, 4]),
+  ...makeStaged("Musician", [1, 2, 3, 4, 5]),
+  ...makeStaged("Nautical Skills", [1, 2, 3, 4, 5, 6]),
+  ...makeStaged("Air Activities", [1, 2, 3, 4, 5, 6]),
+  ...makeStaged("Digital Citizen", [1, 2, 3, 4]),
+  ...makeStaged("Digital Maker", [1, 2, 3, 4, 5]),
+  ...makeStaged("Community Impact", [1, 2, 3, 4]),
+  ...makeStaged("Snowsports", [1, 2, 3, 4]),
+
+  // Scouts
+  { id: "sc_adventure", name: "Adventure", cat: "scouts" },
+  { id: "sc_creative", name: "Creative", cat: "scouts" },
+  { id: "sc_expedition", name: "Expedition", cat: "scouts" },
+  { id: "sc_outdoors", name: "Outdoors", cat: "scouts" },
+  { id: "sc_personal", name: "Personal", cat: "scouts" },
+  { id: "sc_skills", name: "Skills", cat: "scouts" },
+  { id: "sc_team_leader", name: "Team Leader", cat: "scouts" },
+  { id: "sc_teamwork", name: "Teamwork", cat: "scouts" },
+  { id: "sc_world", name: "World", cat: "scouts" },
+  { id: "sc_athletics", name: "Athletics", cat: "scouts" },
+  { id: "sc_camper", name: "Camper", cat: "scouts" },
+  { id: "sc_chef", name: "Chef", cat: "scouts" },
+  { id: "sc_communicator", name: "Communicator", cat: "scouts" },
+  { id: "sc_cyclist", name: "Cyclist", cat: "scouts" },
+  { id: "sc_diy", name: "DIY", cat: "scouts" },
+  { id: "sc_fire_safety", name: "Fire Safety", cat: "scouts" },
+  { id: "sc_forester", name: "Forester", cat: "scouts" },
+  { id: "sc_geocaching", name: "Geocaching", cat: "scouts" },
+  { id: "sc_naturalist", name: "Naturalist", cat: "scouts" },
+  { id: "sc_pioneer", name: "Pioneer", cat: "scouts" },
+  { id: "sc_survival", name: "Survival Skills", cat: "scouts" },
+  { id: "sc_pl_stripes", name: "Patrol Leader (Stripes)", cat: "scouts" },
+  { id: "sc_apl_stripes", name: "Assistant Patrol Leader (Stripes)", cat: "scouts" },
+  { id: "sc_spl_stripes", name: "Senior Patrol Leader (Stripes)", cat: "scouts" },
+
+  // Cubs
+  { id: "cub_adventure", name: "Cubs - Our Adventure", cat: "cubs" },
+  { id: "cub_outdoors", name: "Cubs - Our Outdoors", cat: "cubs" },
+  { id: "cub_skills", name: "Cubs - Our Skills", cat: "cubs" },
+  { id: "cub_world", name: "Cubs - Our World", cat: "cubs" },
+  { id: "cub_teamwork", name: "Cubs - Teamwork", cat: "cubs" },
+  { id: "cub_team_leader", name: "Cubs - Team Leader", cat: "cubs" },
+  { id: "cub_personal", name: "Cubs - Personal", cat: "cubs" },
+  { id: "cub_book_reader", name: "Cubs - Book Reader", cat: "cubs" },
+  { id: "cub_chef", name: "Cubs - Chef", cat: "cubs" },
+  { id: "cub_communicator", name: "Cubs - Communicator", cat: "cubs" },
+  { id: "cub_cyclist", name: "Cubs - Cyclist", cat: "cubs" },
+  { id: "cub_diy", name: "Cubs - DIY", cat: "cubs" },
+  { id: "cub_entertainer", name: "Cubs - Entertainer", cat: "cubs" },
+  { id: "cub_home_help", name: "Cubs - Home Help", cat: "cubs" },
+  { id: "cub_martial_arts", name: "Cubs - Martial Arts", cat: "cubs" },
+  { id: "cub_naturalist", name: "Cubs - Naturalist", cat: "cubs" },
+  { id: "cub_scientist", name: "Cubs - Scientist", cat: "cubs" },
+  { id: "cub_sixer_stripes", name: "Sixer Stripes (2 yellow)", cat: "cubs" },
+  { id: "cub_seconder_stripes", name: "Seconder Stripes (1 yellow)", cat: "cubs" },
+
+  // Beavers
+  { id: "bv_adventure", name: "Beavers - My Adventure", cat: "beavers" },
+  { id: "bv_outdoors", name: "Beavers - My Outdoors", cat: "beavers" },
+  { id: "bv_skills", name: "Beavers - My Skills", cat: "beavers" },
+  { id: "bv_world", name: "Beavers - My World", cat: "beavers" },
+  { id: "bv_personal", name: "Beavers - Personal", cat: "beavers" },
+  { id: "bv_teamwork", name: "Beavers - Teamwork", cat: "beavers" },
+  { id: "bv_book_reader", name: "Beavers - Book Reader", cat: "beavers" },
+  { id: "bv_campcraft", name: "Beavers - Campcraft", cat: "beavers" },
+  { id: "bv_collector", name: "Beavers - Collector", cat: "beavers" },
+  { id: "bv_communicator", name: "Beavers - Communicator", cat: "beavers" },
+  { id: "bv_cook", name: "Beavers - Cook", cat: "beavers" },
+  { id: "bv_cyclist", name: "Beavers - Cyclist", cat: "beavers" },
+  { id: "bv_experiment", name: "Beavers - Experiment", cat: "beavers" },
+  { id: "bv_explore", name: "Beavers - Explore", cat: "beavers" },
+
+  // Squirrels
+  { id: "sq_all_about_me", name: "Squirrels - All About Me", cat: "squirrels" },
+  { id: "sq_all_around_us", name: "Squirrels - All Around Us", cat: "squirrels" },
+  { id: "sq_all_together", name: "Squirrels - All Together", cat: "squirrels" },
+  { id: "sq_feel_good", name: "Squirrels - Feel Good", cat: "squirrels" },
+  { id: "sq_brilliant_builder", name: "Squirrels - Brilliant Builder", cat: "squirrels" },
+  { id: "sq_exciting_explorer", name: "Squirrels - Exciting Explorer", cat: "squirrels" },
+  { id: "sq_go_wild", name: "Squirrels - Go Wild", cat: "squirrels" },
+  { id: "sq_super_chef", name: "Squirrels - Super Chef", cat: "squirrels" }
+];
