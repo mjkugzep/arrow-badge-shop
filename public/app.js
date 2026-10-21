@@ -115,16 +115,16 @@ function parseOsmPdfText(text) {
   renderBadges();
   renderSummary();
 
-  // Hide the upload dropzone now that the shopping list has been ingested
+  // Hide the upload box now that it has been used
   const dropzone = document.querySelector(".pdf-dropzone");
   if (dropzone) {
     dropzone.style.display = "none";
   }
 
-  // Smoothly scroll down to the cart / order summary
-  const summaryCard = document.getElementById("selectedTableContainer");
-  if (summaryCard) {
-    summaryCard.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Smoothly scroll down directly to Leader & Collection Information
+  const leaderCard = document.getElementById("leaderDetailsCard");
+  if (leaderCard) {
+    leaderCard.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   if (unmatchedBadges.length > 0) {
@@ -268,7 +268,7 @@ function validateLeader() {
     leaderName: name,
     leaderEmail: email,
     leaderGroup: `${group} - ${section}`,
-    leaderNotes: document.getElementById("leaderNotes").value.trim() || "None specified",
+    leaderNotes: document.getElementById("leaderNotes").value.trim() || "No specific date/urgency specified",
     extraBadges: document.getElementById("extraBadges").value.trim()
   };
 }
@@ -289,11 +289,11 @@ async function sendEmailNotification(paymentType, leaderInfo, items, grandTotal)
     `Order Ref     : #${orderRef}\n` +
     `Date          : ${new Date().toLocaleDateString("en-GB")}\n` +
     `Status        : ${paymentType}\n\n` +
-    `LEADER & COLLECTION DETAILS:\n` +
+    `LEADER & COLLECTION DETAILS (NO DELIVERY):\n` +
     `Leader Name   : ${leaderInfo.leaderName}\n` +
     `Group/Section : ${leaderInfo.leaderGroup}\n` +
     `Leader Email  : ${leaderInfo.leaderEmail}\n` +
-    `Collection Note: ${leaderInfo.leaderNotes}\n\n` +
+    `Collection / Urgency Note: ${leaderInfo.leaderNotes}\n\n` +
     `PICKING LIST:\n` +
     pickingList + `\n` +
     `----------------------------------------\n` +
