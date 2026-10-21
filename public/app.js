@@ -347,8 +347,8 @@ async function sendEmailNotification(paymentType, leaderInfo, items, grandTotal)
         access_key: WEB3FORMS_KEY,
         subject: `[Badge Order] #${orderRef} - ${leaderInfo.leaderGroup} (${paymentType})`,
         from_name: "Arrow District Badge Shop",
+        name: leaderInfo.leaderName,
         email: leaderInfo.leaderEmail,
-        replyto: leaderInfo.leaderEmail,
         message: bodyText
       })
     });
