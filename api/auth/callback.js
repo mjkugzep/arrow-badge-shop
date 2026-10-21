@@ -1,7 +1,7 @@
 module.exports = async (req, res) => {
   const { code } = req.query;
-  const clientId = process.env.OSM_OAUTH_CLIENT_ID || 'M5UYnGYeMrZltUTM6LslWKTKLrrC8FQI';
-  const clientSecret = process.env.OSM_OAUTH_CLIENT_SECRET || 'clX35yan7yZbkrdGwT0mDw2bSmX7VojON3tyDAlaamEjvApslYrp8W1Vox1lMOBE';
+  const clientId = 'n02R5IdYlrnRUvByY9JCbIqB9L04hedI';
+  const clientSecret = 'HDbm5uCLTpU7ZmiIugNu6ianB3cnal78wpXJ4BP1QrrgFcexHBb0nIl3pwrm1Wks';
   const appUrl = process.env.APP_URL || 'https://arrow-badge-shop.vercel.app';
   const redirectUri = `${appUrl}/api/auth/callback`;
 
