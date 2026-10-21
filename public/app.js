@@ -11,7 +11,7 @@ const DISTRICT_BANK = {
 
 let currentFilter = "all";
 let orderQuantities = {};
-let orderRef = "ARROW-" + Date.now().toString().slice(-6);
+let orderRef = "BADGES-" + Date.now().toString().slice(-4);
 
 function cleanBadgeStr(str) {
   return str
